@@ -39,7 +39,7 @@ search:
 			}
 			// Another plugin's line keeps the address as it is (Enigma2
 			// escapes '%'); ours only escaped ':', so Enigma2 decoded it.
-			if found == nil && (ch.URL == p.Stream || enigma.StreamPath(ch.URL) == p.Stream) {
+			if found == nil && (ch.URL == p.Stream || p.Ours && enigma.StreamPath(ch.URL) == p.Stream) {
 				// An address match waits: our ids, if any, decide first.
 				src, found = s, ch
 				if !p.Ours {
