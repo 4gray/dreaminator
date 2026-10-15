@@ -1,0 +1,32 @@
+# Dreaminator 0.4.0
+
+Live TV from Stalker/Ministra (MAG) portals: enter the portal address and MAC to add channels alongside your existing bouquets.
+
+> Historical release. This package predates the DM520 startup fixes and current TV catalog. Follow the [current installation guide](https://github.com/4gray/dreaminator/blob/main/docs/installation.md) when choosing a package. The attached English Windows guide describes current setup guidance, not a rebuilt historical binary.
+
+## New
+
+- **Stalker** under **Playlists → Add**: provider portal address (usually ending `/c/`) and MAC. Advanced fields accept provider-issued login/password, SN and Device ID. Device IDs are not generated automatically because portals may bind the first identity they see.
+- Provider genres, including hidden adult genres; stars, lists, **Send to TV** and immediate tuning work like other playlist types.
+- **Portal EPG** when no custom EPG URL is supplied.
+- Temporary Stalker links use the local Dreaminator resolver in TV bouquets. Each tune gets a fresh portal URL and redirects the player. Portal sessions are retained and authorization failures trigger reauthentication.
+
+Earlier features remain: M3U URLs/files, Xtream live TV, EPGImport, the status/QR TV plugin and overnight updates.
+
+## Installation and upgrade
+
+The original package is `dreaminator_0.4.0_all.ipk`. USB installation, `opkg install` and source deployment are supported. Installing over an earlier version retains playlists and lists. Accept the GUI restart; see the [English Windows guide](docs/Dreaminator-install-Windows.pdf) and the version warning above.
+
+## Verification at release time
+
+- Fake-portal client tests: API discovery, expired token, login, blocked MAC, pagination, hidden genres and link formats.
+- Same package under MIPS32 emulation: adding a Stalker source, strict bouquet validation, resolver playback and portal EPG reaching the simulated TV.
+- **Not yet checked against a real portal at release time.** Redirect, User-Agent and stream cookie requirements remained to test. Sharing a MAC with another box may cause the portal to replace its session. See the [roadmap](https://github.com/4gray/dreaminator/blob/main/ROADMAP.md).
+
+## Files
+
+| File | SHA-256 |
+| --- | --- |
+| `dreaminator_0.4.0_all.ipk` | `8d9feadcf24d7dfa5c1b5196e9395fa29aaad65678f0e87a36fdd8f9c0e6c971` |
+
+[Historical roadmap](ROADMAP.md) · [Current project documentation](https://github.com/4gray/dreaminator)

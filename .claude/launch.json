@@ -1,0 +1,38 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dreaminator-dev",
+      "runtimeExecutable": "go",
+      "runtimeArgs": [
+        "run",
+        "./cmd/dreaminator",
+        "-listen",
+        ":8088",
+        "-data",
+        "dev/data",
+        "-e2dir",
+        "dev/enigma2",
+        "-epgimport-dir",
+        "dev/epgimport",
+        "-plugin-dir",
+        "",
+        "-webif",
+        ""
+      ],
+      "port": 8088
+    },
+    {
+      "name": "plugin-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8099",
+        "--directory",
+        "dist"
+      ],
+      "port": 8099
+    }
+  ]
+}
