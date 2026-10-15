@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Dreaminator</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img class="brand-mark" src="icon.svg" alt=""><span>Dreaminator</span></div>
+    <div id="box-status" class="box-status"></div>
+  </header>
+  <nav class="nav">
+    <a href="#/channels" data-tab="channels" data-icon="tv">Каналы</a>
+    <a href="#/lists" data-tab="lists" data-icon="list">Мои списки</a>
+    <a href="#/sources" data-tab="sources" data-icon="link">Плейлисты</a>
+    <a href="#/settings" data-tab="settings" data-icon="sliders">Настройки</a>
+  </nav>
+  <main id="view"><div class="loading">Загрузка…</div></main>
+  <div id="applybar"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
