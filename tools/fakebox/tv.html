@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Виртуальный Dreambox</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.8.0/dist/mpegts.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0c10; --panel: #15171d; --panel-2: #1d2029; --line: #2a2e39;
+    --text: #e8e6e1; --muted: #8f8b84; --accent: #e8a33d; --ok: #3fbf74; --bad: #ef6b62;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; flex: 1; }
+  header h1 small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  button { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 16px; padding: 16px 20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+  .panel h2 span { flex: 1; }
+  .panel .body { padding: 12px 14px; }
+
+  .tv { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; overflow: hidden; border: 10px solid #1a1a1a; box-shadow: 0 0 0 1px #333, 0 20px 50px rgba(0,0,0,.6); }
+  .tv video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .tv .msg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #bbb; font-size: 20px; padding: 20px; }
+  .tv .msg small { display: block; font-size: 14px; color: #777; margin-top: 6px; }
+  .infobar { position: absolute; left: 16px; right: 16px; bottom: 16px; padding: 12px 16px; border-radius: 12px; background: linear-gradient(180deg, rgba(20,24,34,.88), rgba(10,12,18,.92)); border: 1px solid rgba(255,255,255,.08); }
+  .infobar .ch { font-size: 20px; font-weight: 700; }
+  .infobar .row { display: flex; gap: 10px; align-items: center; margin-top: 6px; color: #ccc; }
+  .infobar .time { width: 116px; flex: none; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .bar { height: 4px; background: rgba(255,255,255,.12); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .under-tv { display: flex; gap: 8px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+
+  .tabs { display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+  .tab { white-space: nowrap; padding: 6px 12px; border-radius: 999px; background: transparent; }
+  .tab.on { background: var(--accent); color: #1a1205; border-color: var(--accent); font-weight: 700; }
+  .tab .ours { font-size: 11px; opacity: .8; margin-left: 4px; }
+  .channels { max-height: 520px; overflow-y: auto; }
+  .chan { display: grid; grid-template-columns: 36px 1fr 74px; gap: 4px 10px; align-items: center; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 10px 14px; background: transparent; }
+  .chan:hover { background: var(--panel-2); }
+  .chan.on { background: #2b2210; box-shadow: inset 3px 0 0 var(--accent); }
+  .chan .num { color: var(--muted); font-variant-numeric: tabular-nums; grid-row: span 2; align-self: center; }
+  .chan .nm { font-weight: 600; }
+  .chan .ev { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chan .ev.none { font-style: italic; opacity: .6; }
+  .chan .pic { grid-column: 3; grid-row: 1 / span 2; width: 74px; height: 44px; object-fit: contain; }
+  .infobar .pic { position: absolute; right: 16px; top: 12px; width: 110px; height: 66px; object-fit: contain; }
+
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  ul.problems { margin: 0; padding-left: 18px; color: var(--bad); font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
+  .kv dt { color: var(--muted); } .kv dd { margin: 0; word-break: break-all; }
+  .journal { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: #bbb; max-height: 220px; overflow-y: auto; white-space: pre-wrap; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Виртуальный Dreambox <small>имитация Enigma2 + OpenWebif + EPGImport</small></h1>
+  <button id="power">⏻ Питание</button>
+</header>
+
+<div class="grid">
+  <div class="stack">
+    <div>
+      <div class="tv" id="tv"></div>
+      <div class="under-tv" id="under"></div>
+    </div>
+    <div class="panel">
+      <h2><span>Проверка списков (как их прочитает Enigma2)</span></h2>
+      <div class="body" id="check"></div>
+    </div>
+    <div class="panel">
+      <h2><span>EPGImport</span><button id="epg">Запустить импорт</button></h2>
+      <div class="body" id="epginfo"></div>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="panel">
+      <h2><span>Список каналов</span></h2>
+      <div class="tabs" id="tabs"></div>
+      <div class="channels" id="channels"></div>
+    </div>
+    <div class="panel">
+      <h2><span>Журнал ресивера</span></h2>
+      <div class="body journal" id="journal"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const hm = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const ago = (iso) => iso ? new Date(iso).toLocaleTimeString('ru-RU') : '—';
+const typeName = { 1: 'DVB (спутник)', 4097: 'GStreamer', 5001: 'ServiceApp/GStreamer', 5002: 'ServiceApp/exteplayer3' };
+
+let S = null, tab = 0, playing = null, player = null, lastLists = '';
+
+function progress(ev) {
+  const a = new Date(ev.start), b = new Date(ev.stop);
+  return Math.max(0, Math.min(100, (Date.now() - a) / (b - a) * 100));
+}
+
+function stopPlayer() {
+  if (player) { try { player.destroy(); } catch (e) {} player = null; }
+  const v = $('#tv video'); if (v) { v.removeAttribute('src'); v.load(); }
+}
+
+async function startPlayer(video, url) {
+  const src = '/tv/stream?url=' + encodeURIComponent(url);
+  let isHLS = /\.m3u8(\?|$)/i.test(url);
+  if (!isHLS && !/\.ts(\?|$)/i.test(url)) {
+    // Stalker resolver and other extension-less addresses: ask the box.
+    try {
+      const kind = await (await fetch('/tv/kind?url=' + encodeURIComponent(url))).json();
+      if (kind.error || kind.status >= 400) { showPlayError(kind.error || ('HTTP ' + kind.status)); return; }
+      isHLS = kind.hls;
+    } catch (e) { /* fall through to MPEG-TS */ }
+  }
+  if (playing !== (S.current && S.current.ref)) return; // switched meanwhile
+  if (isHLS && window.Hls && Hls.isSupported()) {
+    player = new Hls({ liveDurationInfinity: true });
+    player.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) showPlayError('HLS: ' + d.details); });
+    player.loadSource(src); player.attachMedia(video);
+  } else if (!isHLS && window.mpegts && mpegts.isSupported()) {
+    player = mpegts.createPlayer({ type: 'mpegts', isLive: true, url: location.origin + src });
+    player.on(mpegts.Events.ERROR, (t, d) => showPlayError('MPEG-TS: ' + (d || t)));
+    player.attachMediaElement(video); player.load();
+  } else {
+    video.src = src;
+  }
+  video.play().catch(() => {});
+}
+
+function showPlayError(msg) {
+  const u = $('#under'); if (u) u.innerHTML = `<span class="bad">Браузер не смог показать поток (${esc(msg)}). Для проверки ресивера это не критично — Enigma2 играет больше форматов.</span>`;
+}
+
+function renderTV() {
+  const tv = $('#tv');
+  const cur = S.current;
+  const key = S.standby ? 'standby' : cur ? cur.ref : 'none';
+  if (key !== playing) {
+    stopPlayer();
+    playing = key;
+    if (S.standby) tv.innerHTML = `<div class="msg">Режим ожидания<small>экран выключен</small></div>`;
+    else if (!cur) tv.innerHTML = `<div class="msg">Нет канала<small>нажмите «На ТВ» в Dreaminator или выберите канал справа</small></div>`;
+    else if (!cur.url) tv.innerHTML = `<div class="msg">${esc(cur.name)}<small>спутниковый канал — в симуляторе не показывается</small></div>`;
+    else {
+      tv.innerHTML = `<video muted autoplay playsinline controls></video><div class="infobar" id="infobar"></div>`;
+      $('#under').innerHTML = '';
+      startPlayer(tv.querySelector('video'), cur.url);
+    }
+  }
+  const ib = $('#infobar');
+  if (ib && cur) {
+    const ev = (e, label) => e ? `<div class="row"><span class="time">${hm(e.start)}–${hm(e.stop)}</span><span>${esc(e.title)}</span></div>` : '';
+    ib.innerHTML = `<img class="pic" alt="" src="/tv/picon?ref=${encodeURIComponent(cur.ref)}" onerror="this.remove()"><div class="ch">${esc(cur.name)}</div>` +
+      (cur.now || cur.next ? ev(cur.now) + ev(cur.next) : `<div class="row"><span style="opacity:.6">Нет данных о программе</span></div>`) +
+      (cur.now ? `<div class="bar"><i style="width:${progress(cur.now)}%"></i></div>` : '');
+  }
+  if (cur && !S.standby) {
+    const u = $('#under');
+    if (!u.querySelector('.bad')) u.innerHTML = `<span>${esc(typeName[cur.type] || cur.type)}</span><span>·</span><span style="word-break:break-all">${esc(cur.url || cur.ref)}</span>`;
+  }
+}
+
+function renderLists() {
+  const sig = JSON.stringify([S.bouquets, tab, S.current && S.current.ref]);
+  if (sig === lastLists) return;
+  lastLists = sig;
+  const bqs = S.bouquets || [];
+  if (tab >= bqs.length) tab = 0;
+  $('#tabs').innerHTML = bqs.map((b, i) =>
+    `<button class="tab ${i === tab ? 'on' : ''}" data-i="${i}">${esc(b.name)}${b.ours ? '<span class="ours">★</span>' : ''}</button>`).join('');
+  const b = bqs[tab];
+  $('#channels').innerHTML = !b ? '<div class="body" style="color:var(--muted)">Списков нет</div>' :
+    (b.services || []).map((s, i) => `
+      <button class="chan ${S.current && S.current.ref === s.ref ? 'on' : ''}" data-ref="${esc(s.ref)}">
+        <span class="num">${i + 1}</span>
+        <span class="nm">${esc(s.name)}</span>
+        <img class="pic" alt="" src="/tv/picon?ref=${encodeURIComponent(s.ref)}" onerror="this.style.visibility='hidden'">
+        <span class="ev ${s.now ? '' : 'none'}">${s.now ? esc(hm(s.now.start) + ' ' + s.now.title) : (s.url ? 'нет программы' : 'спутник')}</span>
+      </button>`).join('');
+}
+
+function renderPanels() {
+  const p = S.problems || [];
+  const total = (S.bouquets || []).reduce((n, b) => n + (b.services || []).length, 0);
+  $('#check').innerHTML = `<div class="${p.length ? 'bad' : 'ok'}" style="margin-bottom:${p.length ? 8 : 0}px">
+      ${p.length ? `Найдено ошибок: ${p.length}` : `✓ Формат в порядке`} · бакетов: ${(S.bouquets || []).length}, сервисов: ${total} · перечитано: ${ago(S.reloadedAt)}</div>` +
+    (p.length ? `<ul class="problems">${p.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+
+  const e = S.epg || {};
+  $('#epg').disabled = !!e.running;
+  $('#epg').textContent = e.running ? 'Импорт…' : 'Запустить импорт';
+  $('#epginfo').innerHTML = `<dl class="kv">
+      <dt>Источник</dt><dd>${e.sourceFound ? '<span class="ok">найден</span>' : '—'} ${e.sourceFound ? (e.sourceEnabled ? '· <span class="ok">отмечен</span>' : '· <span class="bad">не отмечен</span>') : ''}</dd>
+      <dt>Адрес</dt><dd>${esc(e.url || '—')}</dd>
+      <dt>Результат</dt><dd>${e.error ? `<span class="bad">${esc(e.error)}</span>` : e.ranAt ? `<span class="ok">${e.events} передач для ${e.channels} каналов</span>` : 'ещё не запускался'}</dd>
+      <dt>Запуск</dt><dd>${ago(e.ranAt)}</dd></dl>`;
+
+  const j = $('#journal');
+  const atBottom = j.scrollTop + j.clientHeight >= j.scrollHeight - 4;
+  j.textContent = (S.journal || []).join('\n');
+  if (atBottom) j.scrollTop = j.scrollHeight;
+}
+
+async function refresh() {
+  try {
+    S = await (await fetch('/tv/state')).json();
+    renderTV(); renderLists(); renderPanels();
+  } catch (e) { /* box restarting */ }
+}
+
+$('#tabs').addEventListener('click', (e) => { const t = e.target.closest('.tab'); if (t) { tab = +t.dataset.i; lastLists = ''; renderLists(); } });
+$('#channels').addEventListener('click', async (e) => {
+  const c = e.target.closest('.chan'); if (!c) return;
+  await fetch('/tv/zap?ref=' + encodeURIComponent(c.dataset.ref), { method: 'POST' }); refresh();
+});
+$('#power').addEventListener('click', async () => { await fetch('/tv/power', { method: 'POST' }); refresh(); });
+$('#epg').addEventListener('click', async () => { await fetch('/tv/epgimport', { method: 'POST' }); setTimeout(refresh, 300); });
+
+refresh();
+setInterval(refresh, 1500);
+</script>
+</body>
+</html>

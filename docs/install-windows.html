@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dreaminator - Windows installation guide</title>
+<!-- Printable installation guide. Build with make docs. -->
+<style>
+  @page { size: A4; margin: 16mm 17mm 16mm 17mm; }
+  :root { --ink: #1d1b18; --muted: #5f5a52; --line: #d9d3c8; --soft: #f3f0ea; --accent: #3d5ce8; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; color: var(--ink); font: 12.5pt/1.45 -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
+  h1 { font-size: 24pt; line-height: 1.15; margin: 0 0 4pt; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 14pt; }
+  h2 { font-size: 16pt; margin: 18pt 0 6pt; display: flex; align-items: center; gap: 8pt; break-after: avoid; break-inside: avoid; }
+  h2 .n { display: inline-grid; place-items: center; width: 22pt; height: 22pt; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12pt; flex: none; }
+  h2 + p, h2 + ol, h2 + ul, h3 + p, h3 + ol, h3 + ul { break-before: avoid; }
+  li, pre, .note { break-inside: avoid; }
+  h3 { font-size: 13pt; margin: 12pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ol, ul { margin: 0 0 6pt; padding-left: 20pt; }
+  li { margin: 0 0 4pt; }
+  li > ul { margin-top: 3pt; }
+  code, .code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10.5pt; background: var(--soft); border-radius: 3pt; padding: 0 3pt; }
+  pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10pt; background: var(--soft); border: 1px solid var(--line); border-radius: 6pt; padding: 8pt 10pt; white-space: pre-wrap; word-break: break-all; margin: 4pt 0 8pt; }
+  .note { border-left: 3pt solid var(--line); padding: 2pt 0 2pt 9pt; color: var(--muted); margin: 6pt 0; }
+  .address {
+    display: flex; align-items: center; gap: 12pt; margin: 10pt 0 4pt; padding: 10pt 14pt;
+    border: 2px solid var(--ink); border-radius: 8pt; break-inside: avoid;
+  }
+  .address b { font-size: 13pt; white-space: nowrap; }
+  .address .blank { flex: 1; border-bottom: 1.5px dashed var(--ink); height: 22pt; }
+  .address .port { font-size: 13pt; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt 18pt; }
+  .step { break-inside: avoid; }
+  .page-break { break-before: page; }
+  .foot { color: var(--muted); font-size: 10pt; margin-top: 14pt; border-top: 1px solid var(--line); padding-top: 6pt; }
+</style>
+</head>
+<body>
+
+<h1>Dreaminator: installation</h1>
+<p class="sub">Windows 10 or 11 · Dreambox DM520 / OpenHDF · about 20 minutes</p>
+<p>Install Dreaminator on your receiver, then manage IPTV playlists and favorite channels from a browser. Playlist synchronization preserves your existing satellite bouquets.</p>
+<div class="address"><b>Receiver address:</b><span class="blank"></span><span class="port">:8088</span></div>
+<p class="note">Write the address from step 1 above. Replace RECEIVER-IP with it in the examples below. Application labels currently use Russian; this guide gives their English meaning.</p>
+<h2>Before you start</h2>
+<ul>
+<li>A compatible package named <code>dreaminator_VERSION_all.ipk</code>. Keep its full filename, including <code>.ipk</code>; Windows may hide that extension.</li>
+<li>A FAT32 USB drive, a Windows computer on the same network, the receiver remote and a tablet or phone.</li>
+<li>The receiver powered on or in standby, connected to the router.</li>
+</ul>
+<p class="note">Tested baseline: DM520, OpenHDF 6.4 build 137, Python 2.7.15. Current source build: 0.11.0-r3, built with Go 1.26.8+. The historical 0.6.0 release lacks the DM520 startup fixes and newer catalog features. See the repository setup guide before choosing a package. The package contains a MIPS executable despite its “all” label; ARM receivers are unverified.</p>
+<div class="step">
+<h2><span class="n">1</span>Find the receiver's network address</h2>
+<ol>
+<li>On the remote, open <b>MENU → Information → System information</b> (sometimes called About or Receiver information).</li>
+<li>Find <b>Network</b>, for example <code>eth0: 192.168.1.45 (100Mb/s)</code>.</li>
+<li>Write the IP address in the box on the first page.</li>
+</ol>
+<p class="note">If Network is empty or the address begins with <code>169.254</code>, check the network cable and router connection.</p>
+</div>
+<div class="step">
+<h2><span class="n">2</span>Copy the package to a USB drive</h2>
+<ol>
+<li>Save the package in <b>Downloads</b>.</li>
+<li>Insert the USB drive. Press <b>Win + E</b> to open File Explorer, then select <b>This PC</b>.</li>
+<li>Right-click the USB drive → <b>Properties</b>. Check that <b>File system</b> says <b>FAT32</b>. If it says exFAT or NTFS, use another compatible drive or the network method later in this guide. Formatting a drive erases it; formatting is not required for these instructions.</li>
+<li>Copy the <code>.ipk</code> file directly to the USB drive, outside any folder.</li>
+<li>Right-click the drive → <b>Eject</b>, then unplug it.</li>
+</ol>
+</div>
+<div class="step">
+<h2><span class="n">3</span>Install on the receiver</h2>
+<ol>
+<li>Insert the drive into the receiver and wait about ten seconds.</li>
+<li>If asked to install extensions, press <b>OK</b>. Otherwise open <b>MENU → Setup → Software management → Install local extension</b>. Some images have an extra Software submenu.</li>
+<li>Select the USB drive (often <code>/media/usb</code>), then select <b>dreaminator</b>.</li>
+<li>Press <b>OK</b> or <b>green</b> and confirm installation. Wait for completion.</li>
+<li>Accept the <b>GUI restart</b> so Enigma2 loads the plugin. Remove the USB drive after installation.</li>
+</ol>
+<p class="note">Menu names vary. Look for “local”, “extension” or “IPK”. Installing over a previous version retains playlists and lists; back up receiver settings before upgrading.</p>
+</div>
+<div class="step">
+<h2><span class="n">4</span>Open it on your computer</h2>
+<ol>
+<li>Open <b>Edge</b> or <b>Chrome</b>.</li>
+<li>Enter <code>http://RECEIVER-IP:8088</code> in the address bar, for example <code>http://192.168.1.45:8088</code>. Include <code>http://</code>.</li>
+<li>The <b>Dreaminator</b> page should appear. Use <b>Ctrl + D</b> to bookmark it.</li>
+</ol>
+<p class="note">The TV plugin shows the address and QR code under <b>MENU → Plugins → Dreaminator → Settings</b>. If Dreaminator is missing, use <b>MENU → Shutdown → Restart GUI</b>. With no configured sources, the plugin opens its settings screen directly.</p>
+<p class="note">If the page does not load, recheck the IP address and that both devices are on the same network. Wait for receiver startup and try again. Keep port 8088 on your trusted home network: the web interface has no login.</p>
+</div>
+<div class="step">
+<h2><span class="n">5</span>Add a tablet shortcut and channels</h2>
+<ol>
+<li>Connect the tablet to your home Wi-Fi.</li>
+<li>Scan the plugin's QR code or enter <code>http://RECEIVER-IP:8088</code> in Chrome.</li>
+<li>On Android Chrome, open the three-dot menu → <b>Add to Home screen → Add</b>.</li>
+<li>Open <b>Playlists → Add</b>: paste a provider URL, upload M3U, enter Xtream credentials, or choose Stalker and enter the provider's portal/MAC.</li>
+<li>Choose groups/channels. A star adds a channel to a list; a group can become a separate list. Reorder items in <b>My lists</b>.</li>
+<li>Select <b>Send to TV</b>. Your selected channels appear in ordinary receiver bouquets alongside satellite channels. <b>On TV</b> tunes one channel immediately.</li>
+</ol>
+<p class="note">Adding a source does not create bouquets automatically. The native TV catalog can browse the source independently. Leave the receiver powered in standby for its 04:00 playlist/guide refresh.</p>
+</div>
+<div class="step">
+<h2><span class="n">6</span>Enable the native programme guide</h2>
+<p>Do this once after the first <b>Send to TV</b>, allowing a few minutes for guide preparation.</p>
+<ol>
+<li>Open <b>MENU → Plugins → EPG-Importer</b>. If absent, press <b>green</b> in Plugins → <b>Extensions → EPGImport</b> and install it.</li>
+<li>In EPG-Importer press <b>blue</b> for <b>Sources</b>.</li>
+<li>Ensure <b>Dreaminator</b> is checked; save with <b>green</b>.</li>
+<li>Enable <b>Automatic import</b> at <b>05:00</b>, after Dreaminator's overnight refresh.</li>
+<li>Press <b>yellow</b> for a manual import to populate programmes now.</li>
+</ol>
+<p class="note">The catalog also has its own guide. Native channel-list/infobar EPG uses EPGImport; unselected catalog channels can still have programme information.</p>
+</div>
+<h2 class="page-break">Troubleshooting</h2>
+<div class="step">
+<h3>USB drive not recognized: transfer over the network</h3>
+<p>If your receiver has FTP enabled, Windows can copy the package without a USB drive. Open <b>Win + R → cmd</b>. Replace both the filename and RECEIVER-IP below with your actual values:</p>
+<pre>curl -T "%USERPROFILE%\Downloads\dreaminator_VERSION_all.ipk" ^
+  "ftp://root@RECEIVER-IP/tmp/" --user root</pre>
+<p>Enter the receiver password when prompted. If FTP is unavailable, use an SSH/SFTP client supported by your receiver image. After a successful transfer, install the local package from <b>/tmp</b> through the receiver's software menu. Files in <code>/tmp</code> disappear on reboot, so install before restarting.</p>
+</div>
+<div class="step">
+<h3>The tablet shortcut stopped opening</h3>
+<p>The router may have assigned a different IP after a power outage. Check step 1 and update the shortcut. A DHCP reservation or a stable local hostname avoids this. On a Fritz!Box network, the configured receiver may be reachable as <code>http://dm520.fritz.box:8088</code>.</p>
+</div>
+<div class="step">
+<h3>A channel or recording does not play</h3>
+<p>Check the provider subscription and use the channel's stream check. A probe temporarily uses one provider connection. Codec, audio and seeking support depend on the receiver/player. M3U catch-up requires real provider recordings; Xtream account and Stalker archive integrations are planned.</p>
+</div>
+<div class="step">
+<h3>Reporting a problem</h3>
+<p>Record the step where it failed, receiver model/image, Dreaminator version and exact error. Include a screenshot or redacted log if useful. Remove passwords, provider stream URLs, MAC addresses and API keys before sharing.</p>
+<p>For service diagnostics over SSH:</p>
+<pre>/etc/init.d/dreaminator restart
+tail -n 100 /tmp/dreaminator.log</pre>
+</div>
+<p class="foot">Dreaminator · English installation guide · https://github.com/4gray/dreaminator<br>Current source-build guidance: 0.11.0-r3. Always check the package version and compatibility before installation.</p>
+
+</body>
+</html>
