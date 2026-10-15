@@ -213,5 +213,57 @@ except Exception as e:
     kind = ui_api.problem(harness.Failure(e)).kind
 assert kind == "archive", "the future is not in the archive: %r" % kind
 assert api("/api/debug")["guide"]["archiveChannels"] >= 2
+
+# The EPG key on a channel list's line (ui_epgkey): the service finds the
+# channel by the ids our lists give it, though the address in the line is old.
+def fnv32a(text):
+    h = 0x811c9dc5
+    for b in bytearray(text.encode("utf-8") if not isinstance(text, bytes) else text):
+        h = ((h ^ b) * 0x01000193) & 0xffffffff
+    return h
+
+def unquote_part(part):
+    try:
+        from urllib import unquote
+    except ImportError:
+        from urllib.parse import unquote
+    return unquote(part)
+
+h = fnv32a(arch["id"] + "/" + unquote_part(edem["id"].split("/")[-1]))
+line = "4097:0:1:%x:%x:1de:0:0:0:0:http%%3a//127.0.0.1/archive/edem/old-token.m3u8:Архив Edem" % (h >> 16 or 1, h & 0xffff)
+found = api("/api/catalog/service?" + urlencode({"ref": line}))
+assert found["source"]["id"] == arch["id"] and found["item"]["archive"] == 3 and found["item"]["id"] == edem["id"], found
+again = api(abase + "/epg?" + urlencode({"key": "expired", "id": found["item"]["id"], "day": -1, "tz": tz}))
+assert [p["start"] for p in again["programmes"]] == [p["start"] for p in yesterday["programmes"]], again
+import ui_epgkey
+
+class KeySession(object):
+    def __init__(self, ref):
+        self.opened = []
+        self.current_dialog = self
+        self.nav = self
+        self.ref = ref
+
+    def getCurrentlyPlayingServiceReference(self):
+        ref = self.ref
+
+        class Ref(object):
+            def toString(self):
+                return ref
+        return Ref()
+
+    def openWithCallback(self, callback, cls, *args):
+        self.opened.append((cls.__name__, args))
+
+    def openSingleServiceEPG(self):
+        self.opened.append(("native", ()))
+
+key = KeySession(line)
+ui_epgkey.epg(key, servicelist=None)
+assert key.opened and key.opened[0][0] == "GuideScreen" and key.opened[0][1][1]["archive"] == 3, key.opened
+# Another list's line of the channel without an archive: the receiver's EPG.
+key = KeySession("4097:0:1:0:0:0:0:0:0:0:http%3a//127.0.0.1/archive/none/index.m3u8:X")
+ui_epgkey.epg(key, servicelist=None)
+assert key.opened == [("native", ())], key.opened
 print("Catalog API: film, details, search, three series modes, fresh links, artwork, programme, playlist Live TV, "
-      "bouquet separation, favorites and recents, archive OK (Python %d.%d)" % sys.version_info[:2])
+      "bouquet separation, favorites and recents, archive, EPG key OK (Python %d.%d)" % sys.version_info[:2])

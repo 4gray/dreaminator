@@ -57,6 +57,15 @@ def day_label(offset, date):
     return "%s, %d %s" % (WEEKDAYS_CAP[weekday], d, MONTHS[m - 1])
 
 
+def day_of(t):
+    """Days from today to the TV's day of moment t, within the guide's days."""
+    try:
+        days = (datetime.date.fromtimestamp(int(t)) - datetime.date.today()).days
+    except (TypeError, ValueError, OverflowError, OSError):
+        return 0
+    return max(FIRST_DAY, min(LAST_DAY, days))
+
+
 def build_skin(width, fonts):
     s = T.Skin(width, fonts)
     b = [s.box(0, 0, T.RAIL_W, 1080, T.RAIL),
@@ -97,7 +106,7 @@ SKIN, SKIN_XML = build_skin(getDesktop(0).size().width(), _plugin().FONTS_READY)
 class GuideScreen(Screen):
     skin = SKIN_XML
 
-    def __init__(self, session, source, item, crumbs):
+    def __init__(self, session, source, item, crumbs, start=None):
         Screen.__init__(self, session)
         self.setTitle("Dreaminator")
         self.s = SKIN
@@ -106,7 +115,9 @@ class GuideScreen(Screen):
         self.crumbs = crumbs
         self.closed = False
         self.generation = 0
-        self.day = 0
+        # start (unix seconds): open on the programme on air then, on its day.
+        self.focus_at = start
+        self.day = day_of(start) if start else 0
         self.date = ""
         self.days = []
         self.programmes = []
@@ -155,7 +166,7 @@ class GuideScreen(Screen):
         self["crumbs"].setText(ui_api.text(self.crumbs))
         self["channel"].setText(clipped(self.item.get("name"), 50))
         self.timer.start(60000, False)
-        self.load(0)
+        self.load(self.day)
 
     # ------------------------------------------------------------ data
 
@@ -169,7 +180,8 @@ class GuideScreen(Screen):
         self.model = ListModel(G["rows"])
         self.render()
         self.show_message("Загрузка…")
-        path = ui_api.catalog_path(self.source["id"], "epg", key=self.item["key"], day=day, tz=ui_api.tz_minutes())
+        path = ui_api.catalog_path(self.source["id"], "epg", key=self.item["key"], id=self.item.get("id"), day=day,
+                                   tz=ui_api.tz_minutes())
 
         def done(result):
             if not self.closed and generation == self.generation:
@@ -196,10 +208,13 @@ class GuideScreen(Screen):
             self.archive = int(result.get("archive") or 0)
         except (TypeError, ValueError):
             self.archive = 0
-        # Today opens on the programme on air (or the next one).
+        # Today opens on the programme on air (or the next one); a guide
+        # opened for a moment, on the programme on air then.
         focus = 0
-        if self.day == 0:
+        t, self.focus_at = self.focus_at, None
+        if t is None and self.day == 0:
             t = time.time()
+        if t is not None:
             for i, p in enumerate(self.programmes):
                 if on_air(p, t) or int(p.get("start") or 0) > t:
                     focus = i
@@ -356,6 +371,15 @@ class GuideScreen(Screen):
         target = self.day + delta
         if not FIRST_DAY <= target <= LAST_DAY:
             return
+        if self.state == "ready" and self.days:
+            first, last = min(self.days), max(self.days)
+            # Opened on a day the source does not know (a programme from the
+            # receiver's own week-long EPG): the next key steps to the
+            # nearest day it knows, when that is in the key's direction.
+            if not first <= self.day <= last:
+                nearest = max(first, min(last, target))
+                if (nearest - self.day) * delta > 0:
+                    target = nearest
         # Past the last day the source knows nothing: stay, and say so.
         if self.state == "ready" and (not self.days or not min(self.days) <= target <= max(self.days)):
             self["days_hint"].setText("Дальше программы нет" if delta > 0 else "Раньше программы нет")

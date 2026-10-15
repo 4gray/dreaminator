@@ -7,6 +7,7 @@ import (
 	"hash/fnv"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -52,6 +53,59 @@ func ServiceRef(serviceType int, s Service) string {
 	sid, tsid := ids(s.Key)
 	return fmt.Sprintf("%d:0:1:%X:%X:%X:0:0:0:0:%s:%s",
 		serviceType, sid, tsid, onid, strings.ReplaceAll(s.URL, ":", "%3a"), cleanName(s.Name))
+}
+
+// ServiceIDs are the SID and TSID our bouquets give the channel key.
+func ServiceIDs(key string) (sid, tsid uint16) { return ids(key) }
+
+// ParsedRef is what a service reference string, as Enigma2 prints it
+// (eServiceReference.toString), says about the stream it plays.
+type ParsedRef struct {
+	SID, TSID uint16
+	Ours      bool   // our ONID: SID and TSID come from a channel key
+	Stream    string // the stream address, decoded (StreamPath)
+}
+
+// ParseServiceRef reads type:flags:data×8:path[:name]. ok is false for a
+// reference without a stream address (a satellite service, a bouquet).
+func ParseServiceRef(ref string) (p ParsedRef, ok bool) {
+	parts := strings.Split(strings.TrimSpace(ref), ":")
+	if len(parts) < 11 || parts[10] == "" {
+		return p, false
+	}
+	hex := func(s string) uint64 {
+		v, _ := strconv.ParseUint(s, 16, 32)
+		return v
+	}
+	p.Stream = StreamPath(parts[10])
+	if !strings.Contains(p.Stream, "://") {
+		return ParsedRef{}, false
+	}
+	sid, tsid, ns := hex(parts[3]), hex(parts[4]), hex(parts[5])
+	if ns == onid && sid <= 0xFFFF && tsid <= 0xFFFF {
+		p.SID, p.TSID, p.Ours = uint16(sid), uint16(tsid), true
+	}
+	return p, true
+}
+
+// StreamPath decodes %xx the way Enigma2 reads a reference, so an address
+// from a bouquet line and one from a playing service compare equal.
+func StreamPath(s string) string {
+	if !strings.Contains(s, "%") {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '%' && i+2 < len(s) {
+			if v, err := strconv.ParseUint(s[i+1:i+3], 16, 8); err == nil {
+				b.WriteByte(byte(v))
+				i += 2
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
 }
 
 // EPGRef is the reference EPGImport uses to attach programmes to a service.

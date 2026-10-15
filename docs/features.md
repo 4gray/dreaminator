@@ -98,3 +98,7 @@ Optional TMDB integration supplies localized descriptions, ratings, cast photogr
 - Manual EPG matching and `.xz` guides are not available.
 - There is no transcoding or media proxy. Containers, codecs, audio, subtitles and seeking depend on Enigma2 and the provider. DASH is unverified.
 - The web interface is intended for a trusted local network and has no login.
+
+## EPG key from receiver bouquets (PR build)
+
+The unmerged 0.11.1-r1 branch adds the Dreaminator programme/archive entry to OpenHDF HotKey Settings and the programme-information menu. It opens catch-up directly from a playing playlist bouquet channel, while retaining native EPG for satellite and non-archive channels. [Setup and rollback](installation.md#catch-up-from-receiver-channel-lists).

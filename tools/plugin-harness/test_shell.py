@@ -73,7 +73,7 @@ class Session(object):
         self.opened = []
         self.callbacks = []
 
-    def open(self, cls, *args):
+    def open(self, cls, *args, **kwargs):
         self.opened.append((cls, args))
 
     def openWithCallback(self, callback, cls, *args):
@@ -1312,6 +1312,208 @@ class DetailTest(Base):
         self.assertEqual(d["title"].getText(), "Фильм")
         self.press("ok")
         self.assertTrue(self.queue.pending("/play"))
+
+
+def load_source(name, path):
+    try:
+        import imp
+        return imp.load_source(name, path)
+    except ImportError:  # Python 3.12+
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+
+class Ref(object):
+    def __init__(self, text):
+        self.text = text
+
+    def toString(self):
+        return self.text
+
+
+class Nav(object):
+    def __init__(self, ref):
+        self.ref = ref
+
+        self.played = []
+
+    def getCurrentlyPlayingServiceReference(self):
+        return Ref(self.ref) if self.ref else None
+
+    def playService(self, ref):
+        self.played.append(ref.toString())
+
+
+class Infobar(object):
+    """The screen the EPG key was pressed on: counts its own EPGs."""
+
+    def __init__(self):
+        self.calls = []
+
+    def openSingleServiceEPG(self):
+        self.calls.append("single")
+
+    def openGraphEPG(self):
+        self.calls.append("graph")
+
+
+class Event(object):
+    def __init__(self, start):
+        self.start = start
+
+    def getBeginTime(self):
+        return self.start
+
+
+EDEM_REF = "4097:0:1:9a1c:2b3d:1de:0:0:0:0:http%3a//edem.test/iptv/T/1/index.m3u8:Россия 1"
+SAT_REF = "1:0:19:283d:3fb:1:c00000:0:0:0:"
+
+
+class EpgKeyTest(Base):
+    """The EPG key on a line of the receiver's channel lists (ui_epgkey)."""
+
+    def setUp(self):
+        Base.setUp(self)
+        import ui_epgkey
+        self.epgkey = ui_epgkey
+        self.original_epgkey = ui_epgkey.threads.deferToThread
+        ui_epgkey.threads.deferToThread = self.queue.defer
+        ui_epgkey.BUSY[0] = False
+        ui_epgkey.register_config()
+        from Components.config import config
+        config.plugins.Dreaminator.epgnative.value = ui_epgkey.NATIVE_DEFAULT
+        self.infobar = Infobar()
+        self.session.current_dialog = self.infobar
+        self.session.nav = Nav(EDEM_REF)
+
+    def tearDown(self):
+        self.epgkey.threads.deferToThread = self.original_epgkey
+        Base.tearDown(self)
+
+    def press_epg(self, **kwargs):
+        self.epgkey.epg(self.session, servicelist=object(), **kwargs)
+
+    def found(self, archive=7):
+        item = {"key": "k1", "id": "m1/itv/1", "name": u"Россия 1", "kind": "channel"}
+        if archive:
+            item["archive"] = archive
+        return {"source": {"id": "m1", "name": u"Edem", "type": "m3u", "sections": ["itv"]}, "item": item}
+
+    def test_a_channel_with_archive_opens_the_programme(self):
+        self.press_epg()
+        job = self.queue.take("/api/catalog/service?")
+        self.assertIn("ref=4097%3A0%3A1%3A9a1c", self.queue.path(job))
+        job.complete(self.found())
+        cls, args = self.session.opened[-1]
+        self.assertEqual(cls.__name__, "GuideScreen")
+        source, item, crumbs, start = args
+        self.assertEqual((source["id"], item["key"], crumbs, start), ("m1", "k1", "Edem › Программа и архив", None))
+        guide = cls(self.session, *args)
+        harness.layout(guide)
+        path = self.queue.path(self.queue.take("/api/catalog/m1/epg"))
+        self.assertIn("day=0", path)
+        self.assertIn("id=m1%2Fitv%2F1", path, "the persistent id finds the channel if the key expired")
+        # OK on the programme on air: the channel already plays live.
+        self.session.callbacks[-1]("play")
+        self.assertFalse(self.queue.pending("/play"))
+        self.assertEqual(self.session.nav.played, [])
+        self.assertEqual(self.infobar.calls, [])
+
+    def test_other_services_keep_the_receivers_epg(self):
+        self.session.nav = Nav(SAT_REF)
+        self.press_epg()
+        self.assertEqual(self.infobar.calls, ["single"], "satellite: no request, the receiver's EPG at once")
+        self.assertFalse(self.queue.jobs)
+        self.session.nav = Nav(EDEM_REF)
+        self.press_epg()
+        self.queue.take("/service").complete(self.found(archive=0))
+        self.press_epg()
+        self.queue.take("/service").error(http_error(404, {"error": u"нет", "code": "missing"}))
+        self.assertEqual(self.infobar.calls, ["single"] * 3)
+        self.assertFalse(self.session.opened)
+
+    def test_the_receivers_epg_is_the_one_the_key_had(self):
+        from Components.config import config
+        config.plugins.Dreaminator.epgnative.value = "Infobar/openGraphEPG"
+        self.session.nav = Nav(SAT_REF)
+        self.press_epg()
+        # Never Dreaminator itself (a loop), never a missing method.
+        config.plugins.Dreaminator.epgnative.value = "Plugins/Extensions/DreaminatorEPG/1"
+        self.press_epg()
+        self.assertEqual(self.infobar.calls, ["graph", "single"])
+
+    def test_one_lookup_at_a_time_and_none_after_leaving(self):
+        self.press_epg()
+        self.press_epg()
+        self.assertEqual(len(self.queue.pending("/service")), 1, "a second press while asking is dropped")
+        self.session.current_dialog = object()  # the viewer opened something else
+        self.queue.take("/service").complete(self.found())
+        self.assertFalse(self.session.opened)
+        self.assertEqual(self.infobar.calls, [])
+        self.session.current_dialog = self.infobar
+        self.press_epg()
+        self.assertTrue(self.queue.pending("/service"), "the next press asks again")
+        self.session.nav = Nav(SAT_REF)  # zapped while the service answered
+        self.queue.take("/service").complete(self.found())
+        self.assertFalse(self.session.opened)
+        self.assertEqual(self.infobar.calls, [], "nor the receiver's EPG of the old channel")
+
+    def test_event_info_menu_opens_the_programme_at_that_programme(self):
+        yesterday = int(time.time()) - 86400
+        self.epgkey.epg(self.session, service=Ref(EDEM_REF), event=Event(yesterday), eventName="Новости")
+        self.queue.take("/service").complete(self.found(archive=0))
+        cls, args = self.session.opened[-1]
+        self.assertEqual(args[3], yesterday, "from the menu even without an archive: the programme screen")
+        guide = cls(self.session, *args)
+        harness.layout(guide)
+        job = self.queue.take("/epg")
+        self.assertIn("day=-1", self.queue.path(job))
+        progs = [programme(u"Утро", -86400 - 7200, 60), programme(u"Новости", -86400 - 600, 60), programme(u"Вечер", -86400 + 3000, 60)]
+        job.complete({"day": -1, "date": "2026-10-04", "programmes": progs, "days": [-1, 0]})
+        self.assertEqual(guide.model.focus, 1, "focused on the programme on air then")
+        # The menu named another channel than the one on: OK on air tunes it.
+        self.session.nav = Nav(SAT_REF)
+        self.session.callbacks[-1]("play")
+        self.assertEqual(self.session.nav.played, [EDEM_REF])
+        # A programme of the receiver's week-long EPG, past the service's days:
+        # the guide opens on that empty day, and ‹ steps to the nearest it knows.
+        later = int(time.time()) + 5 * 86400
+        self.epgkey.epg(self.session, service=Ref(EDEM_REF), event=Event(later))
+        self.queue.take("/service").complete(self.found())
+        cls, args = self.session.opened[-1]
+        far = cls(self.session, *args)
+        harness.layout(far)
+        self.queue.take("day=5").complete({"day": 5, "programmes": [], "days": [-1, 0, 1]})
+        far["actions"].actions["pageNext"]()
+        self.assertFalse(self.queue.pending("/epg"), "further away: nothing to load")
+        far["actions"].actions["pagePrev"]()
+        self.queue.take("day=1")
+        # A satellite service from the menu: say so, the menu stays.
+        self.epgkey.epg(self.session, service=Ref(SAT_REF), event=None)
+        cls, args = self.session.opened[-1]
+        self.assertEqual(cls.__name__, "MessageBox")
+        self.assertEqual(self.infobar.calls, [])
+
+    def test_the_plugin_entry_is_found_by_the_hotkey_and_the_menu(self):
+        import plugin
+        # The catalog's folder has no event info entry: Hotkey numbers
+        # entries per folder, and buttons given to the catalog keep theirs.
+        self.assertEqual([p.where for p in plugin.Plugins()], ["pluginmenu", "extensionsmenu"])
+        epg_plugin = load_source("dreaminator_epg_plugin", os.path.join(harness.ROOT, "plugin", "DreaminatorEPG", "plugin.py"))
+        entries = epg_plugin.Plugins()
+        self.assertEqual([p.where for p in entries], ["eventinfo"])
+        names = entries[0].fnc.__code__.co_varnames
+        # OpenHDF leaves out of the Hotkey list a plugin taking selectedevent,
+        # and out of the event info menu one taking servicelist.
+        self.assertNotIn("selectedevent", names)
+        self.assertNotIn("servicelist", names)
+        self.assertEqual(entries[0].name, self.epgkey.NAME)
+        self.session.nav = Nav(SAT_REF)
+        entries[0].fnc(session=self.session, servicelist=object())
+        self.assertEqual(self.infobar.calls, ["single"], "the entry runs Dreaminator's EPG key")
 
 
 if __name__ == "__main__":
