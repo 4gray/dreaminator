@@ -16,8 +16,9 @@ import (
 	"time"
 )
 
-// pluginDest is where Enigma2 looks for extension plugins.
-const pluginDest = "./usr/lib/enigma2/python/Plugins/Extensions/Dreaminator/"
+// extensionsDest is where Enigma2 looks for extension plugins; every folder
+// of the plugin directory (Dreaminator, DreaminatorEPG) becomes one there.
+const extensionsDest = "./usr/lib/enigma2/python/Plugins/Extensions/"
 
 type entry struct {
 	name string
@@ -56,7 +57,7 @@ func main() {
 	version := flag.String("version", "0.8.0-r1", "package version")
 	binary := flag.String("binary", "dist/dreaminator", "mipsel binary")
 	initScript := flag.String("init", "packaging/dreaminator.init", "init script")
-	pluginDir := flag.String("plugin", "plugin/Dreaminator", "Enigma2 plugin directory")
+	pluginDir := flag.String("plugins", "plugin", "directory of the Enigma2 plugin folders")
 	out := flag.String("out", "dist/dreaminator.ipk", "output file")
 	flag.Parse()
 
@@ -95,14 +96,25 @@ Description: Плейлисты IPTV и избранное для Enigma2 с п�
 		{name: "./etc/init.d/dreaminator", mode: 0o755, data: initData},
 	}
 	for _, dir := range []string{"./usr/lib/", "./usr/lib/enigma2/", "./usr/lib/enigma2/python/",
-		"./usr/lib/enigma2/python/Plugins/", "./usr/lib/enigma2/python/Plugins/Extensions/", pluginDest} {
+		"./usr/lib/enigma2/python/Plugins/", extensionsDest} {
 		data = append(data, entry{name: dir, mode: 0o755})
 	}
-	plugin, err := pluginEntries(*pluginDir)
+	folders, err := os.ReadDir(*pluginDir)
 	if err != nil {
 		log.Fatal(err)
 	}
-	dataTar := tarGz(append(data, plugin...))
+	for _, f := range folders {
+		if !f.IsDir() || strings.HasPrefix(f.Name(), ".") {
+			continue
+		}
+		dest := extensionsDest + f.Name() + "/"
+		plugin, err := pluginEntries(filepath.Join(*pluginDir, f.Name()), dest)
+		if err != nil {
+			log.Fatal(err)
+		}
+		data = append(append(data, entry{name: dest, mode: 0o755}), plugin...)
+	}
+	dataTar := tarGz(data)
 
 	var ar bytes.Buffer
 	ar.WriteString("!<arch>\n")
@@ -119,8 +131,9 @@ Description: Плейлисты IPTV и избранное для Enigma2 с п�
 	fmt.Printf("%s (%d KB)\n", *out, ar.Len()/1024)
 }
 
-// pluginEntries packs the plugin's sources, skipping compiled leftovers.
-func pluginEntries(dir string) ([]entry, error) {
+// pluginEntries packs a plugin folder's sources into dest, skipping
+// compiled leftovers.
+func pluginEntries(dir, dest string) ([]entry, error) {
 	var out []entry
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -134,7 +147,7 @@ func pluginEntries(dir string) ([]entry, error) {
 			// Fonts and UI artwork live in subfolders; old opkg builds do not
 			// create missing parents while unpacking.
 			if rel, _ := filepath.Rel(dir, path); rel != "." {
-				out = append(out, entry{name: pluginDest + filepath.ToSlash(rel) + "/", mode: 0o755})
+				out = append(out, entry{name: dest + filepath.ToSlash(rel) + "/", mode: 0o755})
 			}
 			return nil
 		}
@@ -146,7 +159,7 @@ func pluginEntries(dir string) ([]entry, error) {
 		if err != nil {
 			return err
 		}
-		out = append(out, entry{name: pluginDest + filepath.ToSlash(rel), mode: 0o644, data: b})
+		out = append(out, entry{name: dest + filepath.ToSlash(rel), mode: 0o644, data: b})
 		return nil
 	})
 	if len(out) == 0 && err == nil {

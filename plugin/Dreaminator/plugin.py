@@ -306,7 +306,7 @@ def dev_reload():
         again = reload  # noqa: F821 (Python 2 builtin)
     # keymap.xml is not read again: long OK needs an Enigma2 restart.
     for name in ("ui_theme", "ui_models", "ui_api", "ui_trace", "ui_library", "ui_images", "ui_widgets", "ui_dialogs", "ui_detail",
-                 "ui_guide", "ui_search", "ui_shell"):
+                 "ui_guide", "ui_search", "ui_shell", "ui_epgkey"):
         for prefix in (__name__.rpartition(".")[0] + ".", ""):
             module = sys.modules.get(prefix + name if prefix != "." else name)
             if module is not None:
@@ -321,6 +321,18 @@ def main(session, **kwargs):
     except (ImportError, ValueError):
         from ui_shell import Shell
     session.open(Shell)
+
+
+def epg(session, service=None, event=None, **kwargs):
+    """The EPG key on a channel list's line (ui_epgkey), registered by the
+    DreaminatorEPG plugin folder."""
+    register_fonts()
+    dev_reload()
+    try:
+        from . import ui_epgkey
+    except (ImportError, ValueError):
+        import ui_epgkey
+    ui_epgkey.epg(session, service=service, event=event, **kwargs)
 
 
 def Plugins(**kwargs):
