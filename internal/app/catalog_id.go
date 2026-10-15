@@ -163,3 +163,25 @@ func (a *App) rememberLocked(cache *catalogStore, key string, item stalker.Catal
 	cache.libraryBytes += size
 	return rec
 }
+
+// CurrentKey is a navigation key that finds the row now: key while its list
+// is cached, otherwise the row found again by its persistent id (a screen
+// left open across a list refresh, or the EPG key of a channel list).
+func (a *App) CurrentKey(source, key, id string) string {
+	if id == "" {
+		return key
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	cache, _, err := a.catalogLocked(source)
+	if err != nil {
+		return key
+	}
+	if _, ok := a.catalogRecordLocked(source, cache, key); ok {
+		return key
+	}
+	if k, _, ok := a.catalogRecordByIDLocked(source, cache, id); ok {
+		return k
+	}
+	return key
+}

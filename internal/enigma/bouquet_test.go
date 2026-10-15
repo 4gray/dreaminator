@@ -71,3 +71,27 @@ func TestWriteBouquets(t *testing.T) {
 		t.Errorf("bottom placement:\n%s", got)
 	}
 }
+
+func TestParseServiceRef(t *testing.T) {
+	svc := Service{Key: "src/1", URL: "http://host:8080/iptv/T/1/index.m3u8#User-Agent=A b", Name: "Один"}
+	sid, tsid := ServiceIDs("src/1")
+	// Enigma2 prints a played reference in lower case hex and escapes ':'
+	// and '%' in the path.
+	played := strings.ToLower(ServiceRef(4097, svc)[:strings.Index(ServiceRef(4097, svc), "http")]) +
+		"http%3a//host%3a8080/iptv/T/1/index.m3u8#User-Agent=A b:Один"
+	for _, ref := range []string{ServiceRef(4097, svc), played} {
+		p, ok := ParseServiceRef(ref)
+		if !ok || !p.Ours || p.SID != sid || p.TSID != tsid || p.Stream != svc.URL {
+			t.Errorf("%s: %+v %v", ref, p, ok)
+		}
+	}
+	p, ok := ParseServiceRef("4097:0:1:0:0:0:0:0:0:0:http%3a//h/a%2520b.ts")
+	if !ok || p.Ours || p.Stream != "http://h/a%20b.ts" {
+		t.Errorf("foreign reference without a name: %+v %v", p, ok)
+	}
+	for _, ref := range []string{"1:0:19:283D:3FB:1:C00000:0:0:0:", "1:7:1:0:0:0:0:0:0:0:FROM BOUQUET \"x.tv\" ORDER BY bouquet", ""} {
+		if _, ok := ParseServiceRef(ref); ok {
+			t.Errorf("%q is not a stream", ref)
+		}
+	}
+}

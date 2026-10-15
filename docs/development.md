@@ -88,7 +88,8 @@ Stalker bouquet URLs point to `http://127.0.0.1:8088/stalker/<source>/<channel>`
 | `internal/enigma` | Bouquets, OpenWebif and EPGImport files |
 | `internal/server` | HTTP/JSON API and QR code |
 | `web/static` | Tablet interface and application icons |
-| `plugin/Dreaminator` | Native Enigma2 plugin and TV artwork |
+| `plugin/Dreaminator` | Native Enigma2 plugin, `ui_epgkey` bouquet EPG integration and TV artwork |
+| `plugin/DreaminatorEPG` | Separate EPG event-information/hotkey plugin entry (PR build) |
 | `tools/genicons`, `tools/genui` | Application and TV artwork generators |
 | `packaging`, `tools/mkipk` | Init script and `.ipk` builder |
 | `sim`, `tools/fakebox`, `tools/plugin-harness` | Virtual receiver and Python test harness |

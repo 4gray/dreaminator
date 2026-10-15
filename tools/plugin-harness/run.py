@@ -267,6 +267,7 @@ def install_fakes():
     class PluginDescriptor(object):
         WHERE_PLUGINMENU = "pluginmenu"
         WHERE_EXTENSIONSMENU = "extensionsmenu"
+        WHERE_EVENTINFO = "eventinfo"
 
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
@@ -305,10 +306,32 @@ def install_fakes():
         value = "previous-movie"
         def save(self):
             self.saved = self.value
+    class ConfigSubsection(object):
+        """Like Enigma2's: unknown names raise AttributeError."""
+
+    class ConfigText(object):
+        def __init__(self, default="", fixed_size=True):
+            self.value = default
+
+        def save(self):
+            pass
+
     config = types.ModuleType("config")
     config.usage = types.ModuleType("usage")
     config.usage.last_movie_played = ConfigValue()
-    module("Components.config").config = config
+    config.plugins = ConfigSubsection()
+    components_config = module("Components.config")
+    components_config.config = config
+    components_config.ConfigSubsection = ConfigSubsection
+    components_config.ConfigText = ConfigText
+
+    class MessageBox(Screen):
+        TYPE_INFO = 1
+
+        def __init__(self, session, text, kind=0, timeout=0):
+            Screen.__init__(self, session)
+            self.text = text
+    module("Screens.MessageBox").MessageBox = MessageBox
 
     class MoviePlayer(Screen):
         def __init__(self, session, service):
@@ -321,7 +344,11 @@ def install_fakes():
             self.session.nav.playService(self.lastservice)
             config.usage.last_movie_played.value = self.cur_service.toString()
             config.usage.last_movie_played.save()
-    module("Screens.InfoBar").MoviePlayer = MoviePlayer
+    class InfoBar(Screen):
+        instance = None
+    infobar = module("Screens.InfoBar")
+    infobar.MoviePlayer = MoviePlayer
+    infobar.InfoBar = InfoBar
 
     module("Tools")
     module("Tools.LoadPixmap").LoadPixmap = lambda path, desktop=None, cached=None: path if os.path.exists(path) else None

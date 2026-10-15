@@ -2,7 +2,7 @@
 
 [README](README.md) · [Features](docs/features.md) · [Development](docs/development.md)
 
-This document separates implemented features, simulator checks and real receiver validation. The current `main` package is **0.11.0-r3**. Completed implementation does not imply that every playback or physical-remote check has passed.
+This document separates implemented features, simulator checks and real receiver validation. The `main` package is **0.11.0-r3**. This unmerged PR branch is **0.11.1-r1**. Completed implementation does not imply that every playback or physical-remote check has passed.
 
 ## Release overview
 
@@ -252,6 +252,28 @@ Some channels advertise an archive that the provider does not actually supply. E
 - [ ] Xtream `tv_archive`/`tv_archive_duration`, panel timezone, timeshift URL and past `get_simple_data_table`.
 - [ ] Stalker archive flags, programme IDs and `create_link` type `tv_archive`; verify against a real portal.
 - [ ] Add fake Xtream/Stalker archive fixtures for those integrations.
+
+## EPG key from bouquet channels (unmerged PR, 0.11.1-r1)
+
+Implemented 2026-10-11. A bouquet line remains live TV; the EPG hotkey opens Dreaminator's programme/archive screen rather than modifying native Enigma2 EPG or proxying media.
+
+- [x] `GET /api/catalog/service?ref=` resolves a playing playlist channel. Managed bouquets match stable SID/TSID (FNV32a source/channel, ONID `1DE`) even when a URL token changes. External bouquets match decoded stream addresses; unmatched services return 404.
+- [x] `/epg` accepts persistent `id`, recovering an expired navigation key.
+- [x] `WHERE_EVENTINFO` entry in its own `DreaminatorEPG` folder preserves existing catalog Hotkey numbering. Its signature remains compatible with OpenHDF event menus and Hotkey discovery.
+- [x] Unknown guide days step toward the nearest available day. Satellite services use native EPG immediately; IPTV lookup has a five-second timeout. Duplicate requests and late callbacks after leaving/zapping are ignored.
+- [x] A live programme closes back to the current broadcast; an archive opens CatalogPlayer and returns to the guide. Info/Menu uses the selected service/event, including channels without archive.
+- [x] Go service-reference parsing/matching tests, six EPG-key Python scenarios and end-to-end simulator coverage.
+
+### DM520 remote verification, 2026-10-11
+
+The installed test build combined this branch with the separate 0.11.0-r4 EPGImport channel-file fix, which is not part of this PR. That combined deployment remains in the local backup; it is not silently merged here.
+
+- [x] OpenHDF build 137 Hotkey bytecode/keymap matched the expected `WHERE_EVENTINFO`, `selectedevent`, path length and EPG mapping. Original native action was recorded; settings were backed up before editing with the GUI stopped.
+- [x] All 42 IPTV entries in the tested bouquet resolved in 12–70 ms; both archive-enabled and ordinary channels were covered. The test receiver had no satellite services, so satellite fallback remains harness-only.
+- [x] OpenWebif EPG → guide → previous day → recording (4097, 720×576) → guide → live bouquet channel. A non-archive channel used native EPG. Reopening after closing worked.
+- [x] Finite VipLime HLS: seekability 3, six-hour length, number keys moved +300/+60/−60/−15 seconds and video continued at 854×480. Sliding Edem HLS reported unknown length and did not support those seeks; offset restart seeking remains planned.
+- [x] Edem accumulated five past days and VipLime three; 1,339 archived channels and 149,800 programmes. No new Enigma2 crash from the installation.
+- [ ] At-TV confirmation of picture, HDMI audio, guide appearance and return to live TV.
 
 ## v0.12: Xtream and M3U movies/series
 

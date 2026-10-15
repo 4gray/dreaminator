@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/4gray/dreaminator/releases"><img src="https://img.shields.io/github/v/release/4gray/dreaminator?style=flat-square&amp;color=6374ee" alt="Latest GitHub release"></a>
-  <img src="https://img.shields.io/badge/source_build-0.11.0--r3-6374ee?style=flat-square" alt="Current source build 0.11.0-r3">
+  <img src="https://img.shields.io/badge/source_build-0.11.1--r1-6374ee?style=flat-square" alt="Current source build 0.11.1-r1">
   <img src="https://img.shields.io/badge/platform-Enigma2-38445b?style=flat-square" alt="Platform: Enigma2">
   <img src="https://img.shields.io/badge/tested_on-Dreambox_DM520-38445b?style=flat-square" alt="Tested on Dreambox DM520">
 </p>
@@ -45,7 +45,7 @@ On the TV, a native full-screen catalog gives you live channels, programme guide
 | --- | --- |
 | **Tested receiver** | **Dreambox DM520** |
 | **Tested image** | **OpenHDF 6.4 build 137**, Linux 3.4, Python 2.7.15 |
-| **Recommended Dreaminator build for this setup** | **0.11.0-r3**, built from current source with Go 1.26.8+ |
+| **Recommended Dreaminator build for this setup** | **0.11.1-r1**, built from current source with Go 1.26.8+ |
 | TV layout | Full HD 1920×1080 tested; HD 1280×720 layout tested in the harness, hardware verification pending |
 | Other MIPS Enigma2 receivers/images | Unverified; compatibility depends on image, Python, player and plugins |
 | Vu+ Uno 4K SE / openATV 7.5 | Experimental ARMv7 package via `make ipk-vuuno4kse`; hardware verification pending |
@@ -54,9 +54,11 @@ On the TV, a native full-screen catalog gives you live channels, programme guide
 
 The default `_all.ipk` contains a **MIPS little-endian, soft-float** executable. The separate `_vuuno4kse.ipk` contains a **32-bit ARMv7** executable and declares the receiver's machine architecture. Both builds share the same Python plugin and HD/FHD assets. Python 2.7 and 3 are covered by the plugin harness; this does not certify every image. OpenWebif is required for receiver controls; EPGImport is needed for the native channel-list/infobar guide.
 
-> **Choose the right version.** The historical GitHub release is **0.6.0**. It predates the DM520 startup fixes, TV catalog and catch-up. For the tested DM520 setup, build **0.11.0-r3** from source. The tested OpenHDF version is a compatibility baseline; you do not need to reflash a working receiver merely to match it.
+> **Choose the right version.** The historical GitHub release is **0.6.0**. It predates the DM520 startup fixes, TV catalog and catch-up. For the tested DM520 setup, build **0.11.1-r1** from source. The tested OpenHDF version is a compatibility baseline; you do not need to reflash a working receiver merely to match it.
 
 Playback depends on the receiver, image and provider. The DM520's [manufacturer specification](https://dreambox.de/download/Dreambox_DM520_QuickGuide_122016.pdf) lists HEVC up to Full HD. See the [roadmap](ROADMAP.md) for remaining audio, seeking and physical-remote checks.
+
+> **PR build:** this branch preserves the unmerged EPG-key integration (0.11.1-r1). The PDF is the general installation guide for the main build; branch-specific setup is in the [EPG-key guide](docs/installation.md#catch-up-from-receiver-channel-lists).
 
 ## Quick start
 
@@ -66,7 +68,7 @@ Playback depends on the receiver, image and provider. The DM520's [manufacturer 
    make ipk
    ```
 
-2. **Install** `dist/dreaminator_0.11.0-r3_all.ipk` from a FAT32 USB drive through **Menu → Setup → Software management → Install local extension**. Accept the GUI restart. For SSH installation, use `make deploy HOST=<receiver-address>`.
+2. **Install** `dist/dreaminator_0.11.1-r1_all.ipk` from a FAT32 USB drive through **Menu → Setup → Software management → Install local extension**. Accept the GUI restart. For SSH installation, use `make deploy HOST=<receiver-address>`.
 3. **Open** `http://<receiver-address>:8088` on your tablet, or scan the QR code in **Menu → Plugins → Dreaminator → Settings**.
 4. **Add a source**, choose channels or groups, then select **Send to TV**. The TV catalog can browse your source independently of bouquet selection.
 

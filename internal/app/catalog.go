@@ -65,13 +65,17 @@ func (a *App) CatalogSources() []CatalogSource {
 	defer a.mu.Unlock()
 	out := []CatalogSource{}
 	for _, s := range a.st.Sources {
-		sections := []string{"itv"}
-		if s.Type == "stalker" {
-			sections = []string{"itv", "vod", "series"}
-		}
-		out = append(out, CatalogSource{ID: s.ID, Name: s.Name, Type: s.Type, Sections: sections})
+		out = append(out, catalogSource(s))
 	}
 	return out
+}
+
+func catalogSource(s *Source) CatalogSource {
+	sections := []string{"itv"}
+	if s.Type == "stalker" {
+		sections = []string{"itv", "vod", "series"}
+	}
+	return CatalogSource{ID: s.ID, Name: s.Name, Type: s.Type, Sections: sections}
 }
 
 // catalogFingerprint changes when the source points somewhere else; cached

@@ -106,7 +106,8 @@ def tz_minutes(t=None):
     return int(round((calendar.timegm(time.localtime(t)) - int(t)) / 60.0))
 
 
-def catalog_path(source, operation, **params):
+def query_path(path, **params):
+    """path?params, without the ones that are None."""
     query = {}
     for k, v in params.items():
         if v is None:
@@ -114,10 +115,13 @@ def catalog_path(source, operation, **params):
         if PY2 and isinstance(v, unicode):  # noqa: F821
             v = v.encode("utf-8")
         query[k] = v
+    return path + "?" + urlencode(sorted(query.items())) if query else path
+
+
+def catalog_path(source, operation, **params):
     if PY2 and isinstance(source, unicode):  # noqa: F821
         source = source.encode("utf-8")
-    path = "/api/catalog/%s/%s" % (quote(source, safe=""), operation)
-    return path + "?" + urlencode(sorted(query.items())) if query else path
+    return query_path("/api/catalog/%s/%s" % (quote(source, safe=""), operation), **params)
 
 
 class Problem(object):

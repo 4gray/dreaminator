@@ -73,7 +73,8 @@ func (s *server) catalogRoutes(mux *http.ServeMux) {
 	})
 	// Programme of a channel: now and next with descriptions; with day=N
 	// (0 today, 1 tomorrow…) also that day's programmes. tz is the TV's
-	// offset from UTC in minutes, so days are the TV's days.
+	// offset from UTC in minutes, so days are the TV's days. id, the
+	// persistent id, finds the channel once its key expired.
 	mux.HandleFunc("GET /api/catalog/{source}/epg", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 		defer cancel()
@@ -96,7 +97,8 @@ func (s *server) catalogRoutes(mux *http.ServeMux) {
 			}
 			zone = time.FixedZone("TV", m*60)
 		}
-		v, err := a.CatalogGuide(ctx, r.PathValue("source"), q.Get("key"), day, zone)
+		key := a.CurrentKey(r.PathValue("source"), q.Get("key"), q.Get("id"))
+		v, err := a.CatalogGuide(ctx, r.PathValue("source"), key, day, zone)
 		catalogReply(w, v, err)
 	})
 	// What is on now on the rows on screen: keys=k1,k2,…
@@ -163,6 +165,13 @@ func (s *server) catalogRoutes(mux *http.ServeMux) {
 			return
 		}
 		writeArtwork(w, art)
+	})
+	// The playlist channel behind a service the receiver plays (ref is its
+	// reference as Enigma2 prints it): the EPG key of a channel list opens
+	// this channel's programme and archive.
+	mux.HandleFunc("GET /api/catalog/service", func(w http.ResponseWriter, r *http.Request) {
+		v, err := a.ChannelForService(r.URL.Query().Get("ref"))
+		catalogReply(w, v, err)
 	})
 	mux.HandleFunc("POST /api/catalog/{source}/play", func(w http.ResponseWriter, r *http.Request) {
 		// The key names the row; the persistent id plays it after a list refresh.
