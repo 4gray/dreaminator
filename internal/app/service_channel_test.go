@@ -10,7 +10,32 @@ import (
 	"time"
 
 	"dreaminator/internal/enigma"
+	"dreaminator/internal/playlist"
 )
+
+func TestChannelForServiceExternalURLKeepsEscapedDelimiters(t *testing.T) {
+	for _, escaped := range []string{"%26", "%3D", "%3F", "%23", "%2F"} {
+		t.Run(escaped, func(t *testing.T) {
+			a := guideTestApp(t, t.TempDir(), nil)
+			a.st.Sources = append(a.st.Sources, &Source{ID: "s1", Name: "Playlist", Type: "m3u"})
+			encoded := "http://h/live.ts?token=a" + escaped + "b"
+			literal := enigma.StreamPath(encoded)
+			a.setChannels("s1", []playlist.Channel{
+				{ID: "encoded", Name: "Escaped data", URL: encoded},
+				{ID: "literal", Name: "Literal delimiter", URL: literal},
+			})
+			for _, ch := range a.channels["s1"] {
+				// External plugins escape '%' before Enigma2 serializes the reference.
+				path := strings.ReplaceAll(strings.ReplaceAll(ch.URL, "%", "%25"), ":", "%3a")
+				ref := "4097:0:1:0:0:0:0:0:0:0:" + path + ":Channel"
+				got, err := a.ChannelForService(ref)
+				if err != nil || got.Item.ID != catalogID("s1", "itv", ch.ID) {
+					t.Fatalf("external URL %q: got %+v, %v; want channel %s", ch.URL, got.Item, err, ch.ID)
+				}
+			}
+		})
+	}
+}
 
 func TestChannelForService(t *testing.T) {
 	dir := t.TempDir()
@@ -64,7 +89,7 @@ func TestChannelForService(t *testing.T) {
 		t.Fatalf("escaped address: %+v", v)
 	}
 	for _, ref := range []string{
-		"1:0:19:283D:3FB:1:C00000:0:0:0:",                     // satellite
+		"1:0:19:283D:3FB:1:C00000:0:0:0:",                    // satellite
 		"4097:0:1:0:0:0:0:0:0:0:http%3a//other/x.m3u8:Чужой", // not in any playlist
 		enigma.ServiceRef(4097, enigma.Service{Key: "gone/1", URL: "http://other/y.ts", Name: "Нет"}),
 	} {
