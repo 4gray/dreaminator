@@ -6,8 +6,11 @@ SSH_OPTS ?= -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -
 LDFLAGS := -s -w -X main.version=$(VERSION)
 BOX_ENV := GOOS=linux GOARCH=mipsle GOMIPS=softfloat CGO_ENABLED=0
 IPK     := dist/dreaminator_$(VERSION)_all.ipk
+VU_BOX_ENV := GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0
+VU_BINARY  := dist/vuuno4kse/dreaminator
+VU_IPK     := dist/dreaminator_$(VERSION)_vuuno4kse.ipk
 
-.PHONY: dev test box ipk deploy logs icons ui-assets clean sim sim-logs sim-stop sim-reset docs plugin-test
+.PHONY: dev test box ipk box-vuuno4kse ipk-vuuno4kse deploy logs icons ui-assets clean sim sim-logs sim-stop sim-reset docs plugin-test
 
 ## dev: run locally against a fake receiver in ./dev (no OpenWebif)
 dev:
@@ -27,6 +30,15 @@ box:
 ## ipk: installable package for opkg / the image's "install local extension"
 ipk: box
 	go run ./tools/mkipk -version $(VERSION) -binary dist/dreaminator -out $(IPK)
+
+## box-vuuno4kse: cross-compile for Vu+ Uno 4K SE (32-bit ARMv7, openATV 7.5)
+box-vuuno4kse:
+	mkdir -p $(dir $(VU_BINARY))
+	$(VU_BOX_ENV) go build -trimpath -ldflags "$(LDFLAGS)" -o $(VU_BINARY) ./cmd/dreaminator
+
+## ipk-vuuno4kse: separate experimental package; never overwrites the DM520 build
+ipk-vuuno4kse: box-vuuno4kse
+	go run ./tools/mkipk -version $(VERSION) -arch vuuno4kse -binary $(VU_BINARY) -out $(VU_IPK)
 
 ## deploy: copy the package to the receiver over SSH and install it
 deploy: ipk

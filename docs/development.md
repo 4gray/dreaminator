@@ -19,6 +19,8 @@ make dev          # local service on :8088; receiver files under ./dev
 make test         # go vet, Go tests and Node receiver-editor tests
 make box          # Linux MIPS little-endian, soft-float executable
 make ipk          # dist/dreaminator_<version>_all.ipk
+make box-vuuno4kse # static Linux ARMv7 binary in dist/vuuno4kse/dreaminator
+make ipk-vuuno4kse # dist/dreaminator_<version>_vuuno4kse.ipk (experimental)
 make deploy HOST=192.168.1.45  # build and install over SSH
 make logs         # receiver log, using HOST
 make icons        # regenerate application icons
@@ -27,6 +29,10 @@ make docs         # printable Windows guide
 ```
 
 `make dev` uses local directories and disables OpenWebif. The web interface is plain HTML, CSS and JavaScript embedded with Go's `embed`; it has no frontend build step. Local tests can load playlists and EPG using `file:///absolute/path` URLs. The package version defaults to the Makefile's `VERSION`; override it explicitly when preparing a different build.
+
+The Vu+ target uses `GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0`. Its static executable has no dependency on the image's libc or an ARM cross-compiler. The IPK declares `Architecture: vuuno4kse`, the receiver's machine architecture, so normal `opkg` architecture checks distinguish it from a DM520 package. The packager checks ELF class, byte order, CPU and static linking before creating either package. `Architecture: all` remains the legacy DM520 label for compatibility; it is not a universal executable.
+
+Run both `make ipk` and `make ipk-vuuno4kse` to produce the packages side by side. `make deploy HOST=...` always builds and deploys the **DM520** package; use the [manual Vu+ installation](installation.md#vu-uno-4k-se--openatv-75-experimental) for the ARM package. The existing simulator emulates DM520/MIPS, so a passing simulator run alone does not validate the ARM executable or openATV hardware behavior.
 
 ## Virtual Dreambox
 

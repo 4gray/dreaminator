@@ -8,7 +8,7 @@ The tested configuration is **Dreambox DM520 with OpenHDF 6.4 build 137**, Linux
 
 Use the current source build, **0.11.0-r3**, for the DM520. Build it with `make ipk` using Go 1.26.8 or newer. The older GitHub release **0.6.0 does not include the DM520 startup fixes, TV catalog or catch-up**. Check the version before installing a downloaded package.
 
-The supplied package contains a **Linux MIPS little-endian, soft-float** executable. Its `_all.ipk` filename and `Architecture: all` package field do not make it a universal binary. Other MIPS Enigma2 receivers and images are unverified. ARM/ARM64 receivers need a different executable and have not been validated. Stock DreamOS and other package managers are unverified.
+The default package contains a **Linux MIPS little-endian, soft-float** executable. Its `_all.ipk` filename and `Architecture: all` package field do not make it a universal binary. Other MIPS Enigma2 receivers and images are unverified. A separate experimental ARMv7 package targets **Vu+ Uno 4K SE / openATV 7.5**; see below. Other ARM/ARM64 receivers, stock DreamOS and other package managers are unverified.
 
 The plugin supports Python 2.7 and Python 3 in the test harness. Python 3 tests do not certify a particular receiver or image. Full HD is tested on hardware; the 1280×720 layout is covered by layout tests and still needs hardware verification.
 
@@ -53,6 +53,36 @@ opkg install /tmp/dreaminator_0.11.0-r3_all.ipk
 ```
 
 The service starts immediately and on subsequent boots. Restart the Enigma2 GUI to load the plugin. Installing over an earlier version retains playlists and lists; back up `/etc/dreaminator/` and `/etc/enigma2/` before upgrading.
+
+### Vu+ Uno 4K SE / openATV 7.5 (experimental)
+
+This target is for the **32-bit ARMv7** Uno 4K SE (`vuuno4kse`). The reference receiver reports openATV 7.5 dated 29 December 2024, with the MetrixHD 1280×720 skin. HD assets are included, but GUI, physical-remote and playback behavior still require testing on that receiver. You do not need to reflash openATV to try the package.
+
+Build on your computer with Go 1.26.8 or newer:
+
+```sh
+make ipk-vuuno4kse
+```
+
+Use **`dist/dreaminator_0.11.0-r3_vuuno4kse.ipk`**. The `_all.ipk` file is the Dreambox MIPS build and cannot run on this Vu+. ARM and MIPS binaries are built into separate paths, and both IPKs can coexist in `dist/`. The ordinary `make deploy` still targets DM520/MIPS, even if you change `HOST`; it does not select the ARM package.
+
+For USB installation, copy the `_vuuno4kse.ipk` file to a FAT32 drive and follow the local-extension steps above. For SSH installation, copy that file to the receiver's `/tmp/` and run:
+
+```sh
+opkg install /tmp/dreaminator_0.11.0-r3_vuuno4kse.ipk
+```
+
+Restart the **Enigma2 GUI** from the receiver's menu. Open **Plugins → Dreaminator**, then use the shown address on your phone/tablet (`http://<receiver-address>:8088`). OpenWebif is required; install EPGImport if you want the guide in native bouquets/infobar. Before updating an existing installation, back up `/etc/dreaminator/` and `/etc/enigma2/` as described above.
+
+For the first hardware test, check:
+
+1. The web interface opens and reports version `0.11.0-r3`.
+2. The TV catalog fits the 1280×720 screen; arrows, OK, Back and color keys work.
+3. A known live channel plays, and Back returns to the catalog correctly. If your provider has VOD, also test opening a movie/episode and returning from it.
+4. **Send to TV** creates the expected bouquet; test EPG import if EPGImport is installed.
+5. After a normal receiver reboot, the web service starts again.
+
+If the package is rejected for architecture, collect `opkg print-architecture` and `uname -m`; do not bypass the architecture check. If it installs but does not start, collect `/tmp/dreaminator.log` and the output of `/usr/bin/dreaminator -version`. If the TV interface fails, include the Enigma2 crash log when available. Redact provider credentials and URLs.
 
 ## Open Dreaminator
 

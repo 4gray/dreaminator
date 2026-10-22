@@ -48,10 +48,11 @@ On the TV, a native full-screen catalog gives you live channels, programme guide
 | **Recommended Dreaminator build for this setup** | **0.11.0-r3**, built from current source with Go 1.26.8+ |
 | TV layout | Full HD 1920×1080 tested; HD 1280×720 layout tested in the harness, hardware verification pending |
 | Other MIPS Enigma2 receivers/images | Unverified; compatibility depends on image, Python, player and plugins |
-| ARM/ARM64 receivers and stock DreamOS | Unverified; the supplied MIPS executable is not compatible with ARM/ARM64 |
+| Vu+ Uno 4K SE / openATV 7.5 | Experimental ARMv7 package via `make ipk-vuuno4kse`; hardware verification pending |
+| Other ARM/ARM64 receivers and stock DreamOS | Unverified; neither package certifies these configurations |
 | Browser | Tablet, phone or desktop browser on the receiver's home network |
 
-The `.ipk` contains a **MIPS little-endian, soft-float** executable even though its filename ends in `_all.ipk`. Python 2.7 and 3 are covered by the plugin harness; this does not certify every image. OpenWebif is required for receiver controls; EPGImport is needed for the native channel-list/infobar guide.
+The default `_all.ipk` contains a **MIPS little-endian, soft-float** executable. The separate `_vuuno4kse.ipk` contains a **32-bit ARMv7** executable and declares the receiver's machine architecture. Both builds share the same Python plugin and HD/FHD assets. Python 2.7 and 3 are covered by the plugin harness; this does not certify every image. OpenWebif is required for receiver controls; EPGImport is needed for the native channel-list/infobar guide.
 
 > **Choose the right version.** The historical GitHub release is **0.6.0**. It predates the DM520 startup fixes, TV catalog and catch-up. For the tested DM520 setup, build **0.11.0-r3** from source. The tested OpenHDF version is a compatibility baseline; you do not need to reflash a working receiver merely to match it.
 
@@ -70,6 +71,8 @@ Playback depends on the receiver, image and provider. The DM520's [manufacturer 
 4. **Add a source**, choose channels or groups, then select **Send to TV**. The TV catalog can browse your source independently of bouquet selection.
 
 **[Full setup and troubleshooting](docs/installation.md)** · **[Windows walkthrough (PDF)](docs/Dreaminator-install-Windows.pdf)** · **[Printable HTML](docs/install-windows.html)**
+
+For **Vu+ Uno 4K SE with openATV 7.5**, run `make ipk-vuuno4kse` and install `dist/dreaminator_0.11.0-r3_vuuno4kse.ipk` instead. See the [Vu+ test installation](docs/installation.md#vu-uno-4k-se--openatv-75-experimental). The ordinary `make ipk`, `make deploy` and simulator remain DM520/MIPS builds; the ARM build uses a separate binary path and does not replace them.
 
 Application labels currently use **Russian**; documentation is in English. The web interface has no login and is intended for a trusted home network. Keep port 8088 private to that network.
 

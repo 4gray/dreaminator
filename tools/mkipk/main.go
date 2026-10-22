@@ -6,6 +6,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"debug/elf"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -54,7 +55,8 @@ exit 0
 
 func main() {
 	version := flag.String("version", "0.8.0-r1", "package version")
-	binary := flag.String("binary", "dist/dreaminator", "mipsel binary")
+	binary := flag.String("binary", "dist/dreaminator", "static receiver executable")
+	arch := flag.String("arch", "all", "package architecture: all (legacy DM520 MIPS) or vuuno4kse (ARMv7)")
 	initScript := flag.String("init", "packaging/dreaminator.init", "init script")
 	pluginDir := flag.String("plugin", "plugin/Dreaminator", "Enigma2 plugin directory")
 	out := flag.String("out", "dist/dreaminator.ipk", "output file")
@@ -64,6 +66,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err := validateBinary(bin, *arch); err != nil {
+		log.Fatal(err)
+	}
 	initData, err := os.ReadFile(*initScript)
 	if err != nil {
 		log.Fatal(err)
@@ -71,12 +76,12 @@ func main() {
 
 	control := fmt.Sprintf(`Package: dreaminator
 Version: %s
-Architecture: all
+Architecture: %s
 Maintainer: Dreaminator
 Section: extra
 Priority: optional
 Description: Плейлисты IPTV и избранное для Enigma2 с планшета (веб-интерфейс на порту 8088)
-`, *version)
+`, *version, *arch)
 
 	controlTar := tarGz([]entry{
 		{name: "./", mode: 0o755},
@@ -117,6 +122,43 @@ Description: Плейлисты IPTV и избранное для Enigma2 с п�
 		log.Fatal(err)
 	}
 	fmt.Printf("%s (%d KB)\n", *out, ar.Len()/1024)
+}
+
+// The historical "all" package is MIPS, despite its architecture label. Keep
+// that contract for the DM520, but do not allow ARM and MIPS to be mixed up.
+func validateBinary(data []byte, arch string) error {
+	var machine elf.Machine
+	switch arch {
+	case "all":
+		machine = elf.EM_MIPS
+	case "vuuno4kse":
+		machine = elf.EM_ARM
+	default:
+		return fmt.Errorf("unsupported package architecture %q", arch)
+	}
+	f, err := elf.NewFile(bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("receiver binary must be ELF: %w", err)
+	}
+	defer f.Close()
+	if f.Class != elf.ELFCLASS32 {
+		return fmt.Errorf("%s requires a 32-bit ELF executable", arch)
+	}
+	if f.Data != elf.ELFDATA2LSB {
+		return fmt.Errorf("%s requires a little-endian ELF executable", arch)
+	}
+	if f.Machine != machine {
+		return fmt.Errorf("%s requires %s, got %s", arch, machine, f.Machine)
+	}
+	if f.Type != elf.ET_EXEC {
+		return fmt.Errorf("%s requires a static ELF executable", arch)
+	}
+	for _, p := range f.Progs {
+		if p.Type == elf.PT_INTERP || p.Type == elf.PT_DYNAMIC {
+			return fmt.Errorf("%s requires a static executable without shared library dependencies", arch)
+		}
+	}
+	return nil
 }
 
 // pluginEntries packs the plugin's sources, skipping compiled leftovers.
