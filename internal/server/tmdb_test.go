@@ -58,6 +58,9 @@ func newTMDBHarness(t *testing.T, fake *tmdbtest.Server) *tmdbHarness {
 func (th *tmdbHarness) start() *app.App {
 	defaults := app.DefaultSettings()
 	defaults.WebifURL = ""
+	// A minimal settings PUT omits Picons. Keep it disabled so that request
+	// does not start an unrelated writer surviving the simulated restart.
+	defaults.Picons = false
 	a, err := app.New(th.cfg, defaults, log.New(th.logs, "", 0))
 	if err != nil {
 		th.t.Fatal(err)
