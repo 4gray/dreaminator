@@ -99,6 +99,8 @@ Optional TMDB integration supplies localized descriptions, ratings, cast photogr
 - There is no transcoding or media proxy. Containers, codecs, audio, subtitles and seeking depend on Enigma2 and the provider. DASH is unverified.
 - The web interface is intended for a trusted local network and has no login.
 
-## EPG key from receiver bouquets (PR build)
+## Archive from receiver bouquets
 
-The unmerged 0.11.1-r1 branch adds the Dreaminator programme/archive entry to OpenHDF HotKey Settings and the programme-information menu. It opens catch-up directly from a playing playlist bouquet channel, while retaining native EPG for satellite and non-archive channels. [Setup and rollback](installation.md#catch-up-from-receiver-channel-lists).
+**Channel list → Menu → Архив Dreaminator** opens recordings for the selected playlist channel on OpenHDF and openATV. OK starts an available recording, including the current programme from its beginning. Future programmes stay in the guide with an explanation. Player exit returns to the same row; guide exit returns to the channel list.
+
+The existing Dreaminator programme/archive entry is also available in OpenHDF HotKey Settings and the programme-information menu. It opens catch-up directly from a playing playlist bouquet channel, while retaining native EPG for satellite and non-archive channels. [Setup and rollback](installation.md#catch-up-from-receiver-channel-lists).

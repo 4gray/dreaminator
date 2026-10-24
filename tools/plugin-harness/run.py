@@ -198,6 +198,11 @@ def install_fakes():
 
     module("Components.ActionMap").ActionMap = ActionMap
 
+    class ParentalControl(object):
+        def isServicePlayable(self, ref, callback):
+            return True
+    module("Components.ParentalControl").parentalControl = ParentalControl()
+
     class Label(object):
         def __init__(self, text=""):
             self.text = text
@@ -267,6 +272,7 @@ def install_fakes():
     class PluginDescriptor(object):
         WHERE_PLUGINMENU = "pluginmenu"
         WHERE_EXTENSIONSMENU = "extensionsmenu"
+        WHERE_SESSIONSTART = "sessionstart"
         WHERE_EVENTINFO = "eventinfo"
 
         def __init__(self, **kwargs):

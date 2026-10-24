@@ -1501,7 +1501,7 @@ class EpgKeyTest(Base):
         import plugin
         # The catalog's folder has no event info entry: Hotkey numbers
         # entries per folder, and buttons given to the catalog keep theirs.
-        self.assertEqual([p.where for p in plugin.Plugins()], ["pluginmenu", "extensionsmenu"])
+        self.assertEqual([p.where for p in plugin.Plugins()], ["pluginmenu", "extensionsmenu", "sessionstart"])
         epg_plugin = load_source("dreaminator_epg_plugin", os.path.join(harness.ROOT, "plugin", "DreaminatorEPG", "plugin.py"))
         entries = epg_plugin.Plugins()
         self.assertEqual([p.where for p in entries], ["eventinfo"])

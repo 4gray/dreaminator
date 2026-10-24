@@ -6,7 +6,7 @@
 
 The tested configuration is **Dreambox DM520 with OpenHDF 6.4 build 137**, Linux 3.4, Python 2.7.15 and the FullHDLine 1920×1080 skin. This is a compatibility baseline, not a recommendation to replace a working receiver image.
 
-Use the current source build, **0.11.1-r1**, for the DM520. Build it with `make ipk` using Go 1.26.8 or newer. The older GitHub release **0.6.0 does not include the DM520 startup fixes, TV catalog or catch-up**. Check the version before installing a downloaded package.
+Use the current source build, **0.11.1-r2**, for the DM520. Build it with `make ipk` using Go 1.26.8 or newer. The older GitHub release **0.6.0 does not include the DM520 startup fixes, TV catalog or catch-up**. Check the version before installing a downloaded package.
 
 The default package contains a **Linux MIPS little-endian, soft-float** executable. Its `_all.ipk` filename and `Architecture: all` package field do not make it a universal binary. Other MIPS Enigma2 receivers and images are unverified. A separate experimental ARMv7 package targets **Vu+ Uno 4K SE / openATV 7.5**; see below. Other ARM/ARM64 receivers, stock DreamOS and other package managers are unverified.
 
@@ -49,7 +49,7 @@ Replace the example address with your receiver's IP or hostname. This builds the
 Build with `make ipk`, or obtain a package whose version and architecture match your receiver. Copy it to `/tmp` using your preferred transfer tool, then run on the receiver:
 
 ```sh
-opkg install /tmp/dreaminator_0.11.1-r1_all.ipk
+opkg install /tmp/dreaminator_0.11.1-r2_all.ipk
 ```
 
 The service starts immediately and on subsequent boots. Restart the Enigma2 GUI to load the plugin. Installing over an earlier version retains playlists and lists; back up `/etc/dreaminator/` and `/etc/enigma2/` before upgrading.
@@ -64,19 +64,19 @@ Build on your computer with Go 1.26.8 or newer:
 make ipk-vuuno4kse
 ```
 
-Use **`dist/dreaminator_0.11.0-r3_vuuno4kse.ipk`**. The `_all.ipk` file is the Dreambox MIPS build and cannot run on this Vu+. ARM and MIPS binaries are built into separate paths, and both IPKs can coexist in `dist/`. The ordinary `make deploy` still targets DM520/MIPS, even if you change `HOST`; it does not select the ARM package.
+Use **`dist/dreaminator_0.11.1-r2_vuuno4kse.ipk`**. The `_all.ipk` file is the Dreambox MIPS build and cannot run on this Vu+. ARM and MIPS binaries are built into separate paths, and both IPKs can coexist in `dist/`. The ordinary `make deploy` still targets DM520/MIPS, even if you change `HOST`; it does not select the ARM package.
 
 For USB installation, copy the `_vuuno4kse.ipk` file to a FAT32 drive and follow the local-extension steps above. For SSH installation, copy that file to the receiver's `/tmp/` and run:
 
 ```sh
-opkg install /tmp/dreaminator_0.11.0-r3_vuuno4kse.ipk
+opkg install /tmp/dreaminator_0.11.1-r2_vuuno4kse.ipk
 ```
 
 Restart the **Enigma2 GUI** from the receiver's menu. Open **Plugins → Dreaminator**, then use the shown address on your phone/tablet (`http://<receiver-address>:8088`). OpenWebif is required; install EPGImport if you want the guide in native bouquets/infobar. Before updating an existing installation, back up `/etc/dreaminator/` and `/etc/enigma2/` as described above.
 
 For the first hardware test, check:
 
-1. The web interface opens and reports version `0.11.0-r3`.
+1. The web interface opens and reports version `0.11.1-r2`.
 2. The TV catalog fits the 1280×720 screen; arrows, OK, Back and color keys work.
 3. A known live channel plays, and Back returns to the catalog correctly. If your provider has VOD, also test opening a movie/episode and returning from it.
 4. **Send to TV** creates the expected bouquet; test EPG import if EPGImport is installed.
@@ -182,7 +182,9 @@ TV lists remain and can be removed with the remote. The original `bouquets.tv` i
 
 ## Catch-up from receiver channel lists
 
-This section applies to the unmerged **0.11.1-r1 EPG-key branch**. On OpenHDF, open **Menu → Setup → Remote Control → HotKey Settings → Epg/Guide** and select the Dreaminator programme/archive entry in the EPG plugins group. Its registered action is `Plugins/Extensions/DreaminatorEPG/1`. Menu names depend on the image and language.
+The channel-list menu provides **Архив Dreaminator**: select an IPTV channel in a bouquet, press **Menu**, and choose that entry. It opens the selected channel, even when another channel is playing. **CH− / CH+** change days; **OK** plays a past programme or restarts the current one. **Back** closes the player to the same guide row; another **Back** returns to the channel list. Future programmes and channels without catch-up show an explanation. This entry uses the native openATV hook and a compatible menu adapter on OpenHDF.
+
+The existing EPG-button shortcut is also included. On OpenHDF, open **Menu → Setup → Remote Control → HotKey Settings → Epg/Guide** and select the Dreaminator programme/archive entry in the EPG plugins group. Its registered action is `Plugins/Extensions/DreaminatorEPG/1`. Menu names depend on the image and language.
 
 On a playlist channel with catch-up, EPG opens Dreaminator's guide. OK plays a past recording; Back returns to live TV. Satellite services, channels without an archive and request errors use the receiver's native EPG. The same entry is available in the programme information menu (**Info → Menu**), focused on the selected event.
 

@@ -1,4 +1,4 @@
-VERSION ?= 0.11.1-r1
+VERSION ?= 0.11.1-r2
 HOST    ?= dm520.fritz.box
 # Old Dreambox images ship an old Dropbear that only speaks ssh-rsa.
 SSH_OPTS ?= -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o StrictHostKeyChecking=accept-new
@@ -91,10 +91,11 @@ plugin-test:
 	python3 tools/plugin-harness/test_catalog.py
 	python3 tools/plugin-harness/test_ui_models.py
 	python3 tools/plugin-harness/test_shell.py
+	python3 tools/plugin-harness/test_bouquet.py
 	python3 tools/plugin-harness/catalog_integration.py
 	python3 tools/plugin-harness/run.py dist/plugin-preview.html
 	docker run --rm --network container:dreaminator-sim -v "$(CURDIR)":/src:ro -w /src/tools/plugin-harness \
-		-e PYTHONIOENCODING=utf-8 python:2.7-slim sh -c 'python test_lifecycle.py && python test_catalog.py && python test_ui_models.py && python test_shell.py && python catalog_integration.py && python run.py'
+		-e PYTHONIOENCODING=utf-8 python:2.7-slim sh -c 'python test_lifecycle.py && python test_catalog.py && python test_ui_models.py && python test_shell.py && python test_bouquet.py && python catalog_integration.py && python run.py'
 
 ## docs: printable PDF of the installation guide (needs Google Chrome)
 CHROME ?= /Applications/Google Chrome.app/Contents/MacOS/Google Chrome

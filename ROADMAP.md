@@ -2,7 +2,7 @@
 
 [README](README.md) · [Features](docs/features.md) · [Development](docs/development.md)
 
-This document separates implemented features, simulator checks and real receiver validation. The `main` package is **0.11.0-r3**. This unmerged PR branch is **0.11.1-r1**. Completed implementation does not imply that every playback or physical-remote check has passed.
+This document separates implemented features, simulator checks and real receiver validation. The current source package is **0.11.1-r2**, combining the EPG-key integration, EPGImport IPTV references and separate Dreambox/Vu+ builds. Completed implementation does not imply that every playback or physical-remote check has passed.
 
 ## Release overview
 
@@ -253,7 +253,7 @@ Some channels advertise an archive that the provider does not actually supply. E
 - [ ] Stalker archive flags, programme IDs and `create_link` type `tv_archive`; verify against a real portal.
 - [ ] Add fake Xtream/Stalker archive fixtures for those integrations.
 
-## EPG key from bouquet channels (unmerged PR, 0.11.1-r1)
+## EPG key from bouquet channels (0.11.1)
 
 Implemented 2026-10-11. A bouquet line remains live TV; the EPG hotkey opens Dreaminator's programme/archive screen rather than modifying native Enigma2 EPG or proxying media.
 
@@ -266,7 +266,7 @@ Implemented 2026-10-11. A bouquet line remains live TV; the EPG hotkey opens Dre
 
 ### DM520 remote verification, 2026-10-11
 
-The installed test build combined this branch with the separate 0.11.0-r4 EPGImport channel-file fix, which is not part of this PR. That combined deployment remains in the local backup; it is not silently merged here.
+The original DM520 test build combined the EPG-key branch with the 0.11.0-r4 EPGImport channel-file fix. The current source includes both integrations and the openATV full-reference fix.
 
 - [x] OpenHDF build 137 Hotkey bytecode/keymap matched the expected `WHERE_EVENTINFO`, `selectedevent`, path length and EPG mapping. Original native action was recorded; settings were backed up before editing with the GUI stopped.
 - [x] All 42 IPTV entries in the tested bouquet resolved in 12–70 ms; both archive-enabled and ordinary channels were covered. The test receiver had no satellite services, so satellite fallback remains harness-only.

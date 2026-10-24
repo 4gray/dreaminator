@@ -106,13 +106,14 @@ SKIN, SKIN_XML = build_skin(getDesktop(0).size().width(), _plugin().FONTS_READY)
 class GuideScreen(Screen):
     skin = SKIN_XML
 
-    def __init__(self, session, source, item, crumbs, start=None):
+    def __init__(self, session, source, item, crumbs, start=None, archive_only=False):
         Screen.__init__(self, session)
         self.setTitle("Dreaminator")
         self.s = SKIN
         self.source = source
         self.item = dict(item)
         self.crumbs = crumbs
+        self.archive_only = archive_only
         self.closed = False
         self.generation = 0
         # start (unix seconds): open on the programme on air then, on its day.
@@ -393,7 +394,10 @@ class GuideScreen(Screen):
 
     def key_ok(self):
         p, t = self.focused(), time.time()
-        if p is not None and int(p.get("stop") or 0) <= t and self.archive:
+        if self.archive_only and p is not None and int(p.get("start") or 0) > t:
+            self.show_notice("Эта передача ещё не началась")
+            return
+        if p is not None and (self.archive_only or int(p.get("stop") or 0) <= t) and self.archive:
             if self.recorded(p, t):
                 self.play_recording(p)
             else:

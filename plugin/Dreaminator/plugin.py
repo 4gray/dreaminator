@@ -306,7 +306,7 @@ def dev_reload():
         again = reload  # noqa: F821 (Python 2 builtin)
     # keymap.xml is not read again: long OK needs an Enigma2 restart.
     for name in ("ui_theme", "ui_models", "ui_api", "ui_trace", "ui_library", "ui_images", "ui_widgets", "ui_dialogs", "ui_detail",
-                 "ui_guide", "ui_search", "ui_shell", "ui_epgkey"):
+                 "ui_guide", "ui_search", "ui_shell", "ui_epgkey", "ui_bouquet"):
         for prefix in (__name__.rpartition(".")[0] + ".", ""):
             module = sys.modules.get(prefix + name if prefix != "." else name)
             if module is not None:
@@ -335,11 +335,36 @@ def epg(session, service=None, event=None, **kwargs):
     ui_epgkey.epg(session, service=service, event=event, **kwargs)
 
 
+def archive(session, **kwargs):
+    register_fonts()
+    dev_reload()
+    try:
+        from .ui_bouquet import open_archive
+    except (ImportError, ValueError):
+        from ui_bouquet import open_archive
+    open_archive(session, **kwargs)
+
+
+def archive_session(reason, **kwargs):
+    try:
+        from .ui_bouquet import install_legacy_menu
+    except (ImportError, ValueError):
+        from ui_bouquet import install_legacy_menu
+    install_legacy_menu(reason, **kwargs)
+
+
 def Plugins(**kwargs):
     description = "Каталог Stalker и управление IPTV с планшета"
-    return [
+    entries = [
         PluginDescriptor(name="Dreaminator", description=description,
                          where=PluginDescriptor.WHERE_PLUGINMENU, icon="plugin.png", fnc=main),
         PluginDescriptor(name="Dreaminator", description=description,
                          where=PluginDescriptor.WHERE_EXTENSIONSMENU, fnc=main),
     ]
+    where = getattr(PluginDescriptor, "WHERE_CHANNEL_CONTEXT_MENU", None)
+    if where is not None:
+        entries.append(PluginDescriptor(name="Архив Dreaminator", description="Записи выбранного канала",
+                                        where=where, fnc=archive))
+    else:
+        entries.append(PluginDescriptor(where=PluginDescriptor.WHERE_SESSIONSTART, fnc=archive_session))
+    return entries
