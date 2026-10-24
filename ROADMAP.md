@@ -2,7 +2,7 @@
 
 [README](README.md) · [Features](docs/features.md) · [Development](docs/development.md)
 
-This document separates implemented features, simulator checks and real receiver validation. The current source package is **0.11.1-r2**, combining the EPG-key integration, EPGImport IPTV references and separate Dreambox/Vu+ builds. Completed implementation does not imply that every playback or physical-remote check has passed.
+This document separates implemented features, simulator checks and real receiver validation. The current source package is **0.11.1-r3**, combining the EPG-key integration, EPGImport IPTV references and separate Dreambox/Vu+ builds. Completed implementation does not imply that every playback or physical-remote check has passed.
 
 ## Release overview
 
@@ -53,7 +53,8 @@ This document separates implemented features, simulator checks and real receiver
 - [x] OpenWebif `servicelistreload?mode=2` loads lists without restarting the GUI: 26 bouquets and 1,802 channels verified.
 - [x] Plugin entry/icon, FullHDLine status screen, button colors and QR drawing; displayed address matches `eth0`.
 - [x] Idle service heap approximately 0.7 MB, system memory approximately 5.9 MB; loaded measurements still needed.
-- [ ] Confirm native EPGImport accepts the generated `channels.xml` references and that its installed configuration format is enabled automatically.
+- [x] On Vu+ / openATV 7.5, native EPGImport accepts full IPTV references: 4,278 events imported; native EPG verified on 83 of 89 mapped channels (six had no programmes in current XMLTV).
+- [ ] Verify automatic source selection on a fresh EPGImport installation; the tested Vu+ source was selected through its UI.
 - [ ] Confirm the extensions/blue-menu entry and scanning the QR with a tablet camera.
 - [ ] Confirm picons in the channel list/infobar and flash usage.
 - [ ] Test real provider redirect/header requirements and same-MAC session contention.
@@ -274,6 +275,18 @@ The original DM520 test build combined the EPG-key branch with the 0.11.0-r4 EPG
 - [x] Finite VipLime HLS: seekability 3, six-hour length, number keys moved +300/+60/−60/−15 seconds and video continued at 854×480. Sliding Edem HLS reported unknown length and did not support those seeks; offset restart seeking remains planned.
 - [x] Edem accumulated five past days and VipLime three; 1,339 archived channels and 149,800 programmes. No new Enigma2 crash from the installation.
 - [ ] At-TV confirmation of picture, HDMI audio, guide appearance and return to live TV.
+
+## Bouquet archive menu and Vu+ verification, 2026-10-24
+
+Current source build **0.11.1-r3** combines the existing DM520 EPG-key work, the EPGImport IPTV-reference fix and separate MIPS/ARM packages.
+
+- [x] **Channel list → Menu → Архив Dreaminator** opens the selected IPTV channel. openATV uses `WHERE_CHANNEL_CONTEXT_MENU`; OpenHDF uses an idempotent session-start menu adapter. The existing EPG-button action and its plugin-folder numbering are preserved.
+- [x] Channel parental protection is checked before opening. Unknown/non-archive channels show an explanation; late results after closing are ignored. The archive menu's OK restarts the current programme, and future programmes stay in the guide.
+- [x] All 103 Python harness checks pass under Python 2.7 and Python 3; Go vet/full tests and Node checks pass. Both packages contain identical Python plugin files, with separately validated MIPS/ARM executables.
+- [x] Installed the ARM package only on Vu+ Uno 4K SE / openATV 7.5. Opened Russian Extreme HD from the actual bouquet menu, played a past programme through native 4097, observed changing video frames at 1920×1080 and advancing playback position. HLS was finite VOD; its programme-date-time matched the requested start within two seconds.
+- [x] Player exit restored the same guide row. Guide exit restored the selected bouquet channel after the receiver reset its selection to the previously playing service.
+- [x] EPGImport remained enabled at 05:00 after the GUI restart. Dreambox's installed package and EPG-button assignment were not changed.
+- [ ] Confirm HDMI sound and physical remote behavior at the TV. The new legacy menu adapter is harness-tested on Python 2.7; its actual DM520 GUI deployment remains separate.
 
 ## v0.12: Xtream and M3U movies/series
 

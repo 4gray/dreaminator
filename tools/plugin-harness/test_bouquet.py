@@ -92,6 +92,29 @@ class BouquetTest(unittest.TestCase):
         finally:
             parentalControl.isServicePlayable = original
 
+    def test_return_restores_highlight_after_the_native_context_menu_closes(self):
+        import ui_bouquet
+        class Selection(object):
+            def __init__(self):
+                self.onExecBegin = []
+                self.selected = "previously playing channel"
+            def setCurrentSelection(self, ref):
+                self.selected = ref.toString()
+        class Context(object):
+            pass
+        session = Session()
+        csel, menu = Selection(), Context()
+        menu.csel = csel
+        session.current_dialog = menu
+        ui_bouquet.open_archive(session, service=eServiceReference(REF))
+        self.assertTrue(session.callbacks, "restore after closing, not before the receiver resets its selection")
+        session.callbacks[-1]()  # loader closes; native context menu closes next
+        session.current_dialog = csel
+        for callback in list(csel.onExecBegin):
+            callback()
+        self.assertEqual(csel.selected, REF)
+        self.assertEqual(csel.onExecBegin, [], "one return must not override later user navigation")
+
     def test_legacy_registration_preserves_the_existing_hotkey_entry_numbers(self):
         entries = plugin.Plugins()
         self.assertEqual([p.where for p in entries], ["pluginmenu", "extensionsmenu", "sessionstart"])
@@ -165,6 +188,8 @@ class BouquetTest(unittest.TestCase):
             harness.layout(screen)
             current, future = programme("Current", -1200), programme("Future", 2400)
             q.take("/epg?").complete({"archive": 3, "days": [0], "programmes": [current, future]})
+            self.assertIn("OK — с начала", screen["hint"].getText())
+            self.assertNotIn("смотреть канал", screen["hint"].getText())
             screen.key_ok()
             self.assertEqual(q.take("/play").args[1]["start"], current["start"])
             screen.playing = False

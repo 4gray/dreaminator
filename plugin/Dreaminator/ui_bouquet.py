@@ -19,9 +19,27 @@ NAME = "Архив Dreaminator"
 def open_archive(session, service=None, serviceref=None, **kwargs):
     selected = service if service is not None else serviceref
     ref = ui_epgkey.played_ref(session, selected) if selected is not None else ""
+    csel = getattr(getattr(session, "current_dialog", None), "csel", None)
+
+    def closed(*unused):
+        if csel is None:
+            return
+
+        def restore():
+            if restore in csel.onExecBegin:
+                csel.onExecBegin.remove(restore)
+            if getattr(session, "current_dialog", None) is csel:
+                csel.setCurrentSelection(getattr(selected, "ref", selected))
+
+        # Native hooks close their context menu after opening the loader.
+        # That menu may still need one exec/close cycle before csel resumes.
+        if getattr(session, "current_dialog", None) is csel:
+            restore()
+        else:
+            csel.onExecBegin.append(restore)
 
     def allowed(**unused):
-        session.open(BouquetArchiveScreen, ref)
+        session.openWithCallback(closed, BouquetArchiveScreen, ref)
 
     if selected is not None and ui_epgkey.is_stream(ref):
         from Components.ParentalControl import parentalControl

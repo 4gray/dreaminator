@@ -325,7 +325,10 @@ class GuideScreen(Screen):
         if p is not None and self.recorded(p, t) and int(p.get("stop") or 0) <= t:
             text = "OK — смотреть запись · " + days + " · Back — назад"
         elif p is not None and self.recorded(p, t) and on_air(p, t):
-            text = "OK — смотреть канал · Красная — с начала · " + days + " · Back — назад"
+            action = "OK — с начала" if self.archive_only else "OK — смотреть канал · Красная — с начала"
+            text = action + " · " + days + " · Back — назад"
+        elif self.archive_only:
+            text = "↑↓ — передачи · " + days + " · Back — назад"
         else:
             text = "↑↓ — передачи · " + days + " · OK — смотреть канал · Back — назад"
         self.w.text("hint", text)
