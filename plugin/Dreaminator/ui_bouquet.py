@@ -38,14 +38,7 @@ def open_archive(session, service=None, serviceref=None, **kwargs):
         else:
             csel.onExecBegin.append(restore)
 
-    def allowed(**unused):
-        session.openWithCallback(closed, BouquetArchiveScreen, ref)
-
-    if selected is not None and ui_epgkey.is_stream(ref):
-        from Components.ParentalControl import parentalControl
-        if not parentalControl.isServicePlayable(getattr(selected, "ref", selected), callback=allowed):
-            return
-    allowed()
+    session.openWithCallback(closed, BouquetArchiveScreen, ref)
 
 
 class BouquetArchiveScreen(Screen):
@@ -103,7 +96,20 @@ class BouquetArchiveScreen(Screen):
             from .ui_guide import GuideScreen
         except (ImportError, ValueError):
             from ui_guide import GuideScreen
-        self.session.openWithCallback(self.close, GuideScreen, source, item, NAME, None, True)
+        from Components.ParentalControl import parentalControl
+        from enigma import eServiceReference
+
+        def allowed(**unused):
+            if not self.closed:
+                self.session.openWithCallback(self.close, GuideScreen, source, item, NAME, None, True)
+
+        # Authorize from the loader, which stays modal while the native
+        # context menu waits to close. A PIN callback can then safely open
+        # the guide, without racing the context menu's deferred close.
+        self["status"].setText("Доступ к каналу защищён PIN-кодом")
+        self["hint"].setText("Жёлтая — повторить · Back — вернуться в список")
+        if parentalControl.isServicePlayable(eServiceReference(self.ref), callback=allowed, session=self.session):
+            allowed()
 
     def failed(self, failure):
         self.loading = False

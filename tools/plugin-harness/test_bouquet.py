@@ -77,18 +77,23 @@ class BouquetTest(unittest.TestCase):
         from Components.ParentalControl import parentalControl
         original = parentalControl.isServicePlayable
         pending = []
-        def check(ref, callback):
-            pending.append((ref, callback))
+        def check(ref, callback, session=None):
+            pending.append((ref, callback, session))
             return False
         parentalControl.isServicePlayable = check
         try:
             session = Session()
-            selected = eServiceReference(REF)
-            ui_bouquet.open_archive(session, service=selected)
+            screen = ui_bouquet.BouquetArchiveScreen(session, REF)
+            screen.resolved(FOUND)
             self.assertEqual(session.opened, [])
-            self.assertIs(pending[0][0], selected)
-            pending[0][1](ref=selected)  # the receiver accepted the PIN
-            self.assertEqual(session.opened[-1][1], (REF,))
+            self.assertEqual(pending[0][0].toString(), REF)
+            self.assertIs(pending[0][2], session, "request the modal PIN now, rather than queueing an InfoBar notification")
+            pending[0][1](ref=eServiceReference(REF))  # the receiver accepted the PIN
+            self.assertEqual(session.opened[-1][0].__name__, "GuideScreen")
+            screen.close()
+            count = len(session.opened)
+            pending[0][1](ref=eServiceReference(REF))
+            self.assertEqual(len(session.opened), count, "authorization cannot reopen a closed archive entry")
         finally:
             parentalControl.isServicePlayable = original
 

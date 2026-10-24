@@ -199,7 +199,7 @@ def install_fakes():
     module("Components.ActionMap").ActionMap = ActionMap
 
     class ParentalControl(object):
-        def isServicePlayable(self, ref, callback):
+        def isServicePlayable(self, ref, callback, session=None):
             return True
     module("Components.ParentalControl").parentalControl = ParentalControl()
 
