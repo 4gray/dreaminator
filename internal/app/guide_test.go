@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"dreaminator/internal/enigma"
 	"dreaminator/internal/epg"
 	"dreaminator/internal/stalker/stalkertest"
 )
@@ -34,6 +35,27 @@ func guideTestApp(t *testing.T, dir string, now *time.Time) *App {
 		a.clock = func() time.Time { return *now }
 	}
 	return a
+}
+
+func TestReadGuideMapFromEPGImportReferences(t *testing.T) {
+	for _, kind := range []int{1, 4097, 5001, 5002} {
+		t.Run(fmt.Sprint(kind), func(t *testing.T) {
+			a := guideTestApp(t, t.TempDir(), nil)
+			ref := ChannelRef{Source: "s1", ID: "one"}
+			a.st.Bouquets[0].Channels = []ChannelRef{ref}
+			service := enigma.EPGRef(ref.key())
+			if kind != 1 {
+				service = enigma.ServiceRef(kind, enigma.Service{Key: ref.key(), URL: "http://host/live.ts?one=1&two=2", Name: "One & HD"})
+			}
+			if err := enigma.WriteEPGImport(a.cfg.EPGImportDir, "http://127.0.0.1:8088/epg.xml", map[string][]string{"xmltv.one": {service}}); err != nil {
+				t.Fatal(err)
+			}
+			got, err := a.readGuideMap()
+			if err != nil || got[ref.key()] != "xmltv.one" {
+				t.Fatalf("guide recovery = %v, %v", got, err)
+			}
+		})
+	}
 }
 
 // guideXML has hourly programmes for one, two and three from 06:00 on

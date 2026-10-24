@@ -289,7 +289,7 @@ func (a *App) readGuideMap() (map[string]string, error) {
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		if m := channelLine.FindStringSubmatch(sc.Text()); m != nil {
-			for _, k := range byRef[m[2]] {
+			for _, k := range byRef[epgImportKey(m[2])] {
 				out[k] = m[1]
 			}
 		}

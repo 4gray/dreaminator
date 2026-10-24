@@ -388,7 +388,7 @@ func (a *App) buildEPG(ctx context.Context, jobs []epgJob, keys map[string][]str
 	a.archiveBuilt(archive, now) // before guideBuilt replaces the live indexes it reads
 	a.guideBuilt(index.Builder.Build(), index.Refs)
 
-	if err := enigma.WriteEPGImport(a.cfg.EPGImportDir, a.cfg.PublicURL+"/epg.xml", mapping); err != nil {
+	if err := enigma.WriteEPGImport(a.cfg.EPGImportDir, a.cfg.PublicURL+"/epg.xml", a.epgImportMapping(mapping, s.ServiceType)); err != nil {
 		problems = append(problems, err.Error())
 	} else if err := enigma.EnableEPGImportSource(ctx, a.cfg.EPGImportDir); err != nil {
 		a.log.Printf("не удалось включить источник в EPGImport: %v", err)

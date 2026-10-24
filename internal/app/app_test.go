@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"dreaminator/internal/enigma"
 )
 
 const testPlaylist = `#EXTM3U url-tvg="file://%DIR%/guide.xml"
@@ -87,6 +90,27 @@ func TestEndToEnd(t *testing.T) {
 	mapping, _ := os.ReadFile(filepath.Join(dir, "epgimport", "dreaminator.channels.xml"))
 	if strings.Count(string(mapping), "<channel ") != 2 {
 		t.Fatalf("channels.xml:\n%s", mapping)
+	}
+	// openATV's EPGImport validates DVB refs by pretending to tune them. Our
+	// synthetic triplets have no DVB service, so it needs the real IPTV refs.
+	var imported struct {
+		Channels []struct {
+			Ref string `xml:",chardata"`
+		} `xml:"channel"`
+	}
+	if err := xml.Unmarshal(mapping, &imported); err != nil {
+		t.Fatal(err)
+	}
+	wantRefs := map[string]bool{}
+	for _, b := range a.buildBouquets() {
+		for _, svc := range b.Services {
+			wantRefs[enigma.ServiceRef(defaults.ServiceType, svc)] = true
+		}
+	}
+	for _, ch := range imported.Channels {
+		if !wantRefs[ch.Ref] || !strings.Contains(ch.Ref, "%3a//") {
+			t.Errorf("EPGImport must receive a playable bouquet reference, got %q", ch.Ref)
+		}
 	}
 
 	// Reloading from disk keeps everything.

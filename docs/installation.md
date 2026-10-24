@@ -116,6 +116,8 @@ For the native receiver EPG, after your first **Send to TV**:
 4. Enable automatic import at **05:00**, after Dreaminator's overnight refresh.
 5. Run a manual import with **yellow** to populate the guide immediately.
 
+On **openATV 7.5**, EPGImport is hidden from the Plugin Browser by default. Open **Menu → Setup → EPG → EPG-Importer** (Russian: **Меню → Настройка → ТВ-гид → Импортер EPG**). Enable **Show EPG-Importer in plugins list** and save if you want it in the Plugin Browser. Dreaminator exports full IPTV service references so this image's EPGImport validation accepts the synthetic channel IDs; the stream URLs are not fetched during EPG import.
+
 The TV catalog also has its own guide. Selected channels use the filtered XMLTV file; other M3U channels use a compact 36-hour index; Xtream/Stalker short guides are fetched on demand and cached for 15 minutes. The catalog does not require channels to be in bouquets. Manual EPG matching and `.xz` guides are not implemented.
 
 ## Existing receiver bouquets
