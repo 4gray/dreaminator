@@ -117,7 +117,19 @@ def open_guide(session, found, ref, start=None):
             except Exception:
                 pass
 
-    session.openWithCallback(closed, GuideScreen, source, item, crumbs, start)
+    from Components.ParentalControl import parentalControl
+    from enigma import eServiceReference
+    screen = getattr(session, "current_dialog", None)
+
+    def allowed(**unused):
+        if getattr(session, "current_dialog", None) is screen:
+            session.openWithCallback(closed, GuideScreen, source, item, crumbs, start)
+
+    # Event information can name a protected channel other than the one
+    # playing. Authorize that original reference before an archive URL is
+    # minted, and present the PIN in the currently active dialog.
+    if parentalControl.isServicePlayable(eServiceReference(ref), callback=allowed, session=session):
+        allowed()
 
 
 def show_message(session, text):

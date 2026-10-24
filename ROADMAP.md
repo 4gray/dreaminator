@@ -2,7 +2,7 @@
 
 [README](README.md) · [Features](docs/features.md) · [Development](docs/development.md)
 
-This document separates implemented features, simulator checks and real receiver validation. The current source package is **0.11.1-r4**, combining the EPG-key integration, EPGImport IPTV references and separate Dreambox/Vu+ builds. Completed implementation does not imply that every playback or physical-remote check has passed.
+This document separates implemented features, simulator checks and real receiver validation. The current source package is **0.11.1-r5**, combining the EPG-key integration, EPGImport IPTV references and separate Dreambox/Vu+ builds. Completed implementation does not imply that every playback or physical-remote check has passed.
 
 ## Release overview
 
@@ -278,11 +278,11 @@ The original DM520 test build combined the EPG-key branch with the 0.11.0-r4 EPG
 
 ## Bouquet archive menu and Vu+ verification, 2026-10-24
 
-Current source build **0.11.1-r4** combines the existing DM520 EPG-key work, the EPGImport IPTV-reference fix and separate MIPS/ARM packages.
+Current source build **0.11.1-r5** combines the existing DM520 EPG-key work, the EPGImport IPTV-reference fix and separate MIPS/ARM packages.
 
 - [x] **Channel list → Menu → Архив Dreaminator** opens the selected IPTV channel. openATV uses `WHERE_CHANNEL_CONTEXT_MENU`; OpenHDF uses an idempotent session-start menu adapter. The existing EPG-button action and its plugin-folder numbering are preserved.
 - [x] Channel parental protection is checked before opening. Unknown/non-archive channels show an explanation; late results after closing are ignored. The archive menu's OK restarts the current programme, and future programmes stay in the guide.
-- [x] All 103 Python harness checks pass under Python 2.7 and Python 3; Go vet/full tests and Node checks pass. Both packages contain identical Python plugin files, with separately validated MIPS/ARM executables.
+- [x] All 104 Python harness checks pass under Python 2.7 and Python 3; Go vet/full tests and Node checks pass. Both packages contain identical Python plugin files, with separately validated MIPS/ARM executables.
 - [x] Installed the ARM package only on Vu+ Uno 4K SE / openATV 7.5. Opened Russian Extreme HD from the actual bouquet menu, played a past programme through native 4097, observed changing video frames at 1920×1080 and advancing playback position. HLS was finite VOD; its programme-date-time matched the requested start within two seconds.
 - [x] Player exit restored the same guide row. Guide exit restored the selected bouquet channel after the receiver reset its selection to the previously playing service.
 - [x] EPGImport remained enabled at 05:00 after the GUI restart. Dreambox's installed package and EPG-button assignment were not changed.

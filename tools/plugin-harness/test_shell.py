@@ -1445,6 +1445,30 @@ class EpgKeyTest(Base):
         self.press_epg()
         self.assertEqual(self.infobar.calls, ["graph", "single"])
 
+    def test_event_menu_checks_the_original_channel_pin_before_opening_archive(self):
+        from Components.ParentalControl import parentalControl
+        original = parentalControl.isServicePlayable
+        pending = []
+        def check(ref, callback, session=None):
+            pending.append((ref, callback, session))
+            return False
+        parentalControl.isServicePlayable = check
+        try:
+            self.session.nav = Nav(SAT_REF)
+            self.epgkey.epg(self.session, service=Ref(EDEM_REF))
+            self.queue.take("/service").complete(self.found())
+            self.assertEqual(self.session.opened, [], "a new archive URL must not bypass the original channel's PIN")
+            self.assertEqual(pending[0][0].toString(), EDEM_REF)
+            self.assertIs(pending[0][2], self.session)
+            pending[0][1](ref=Ref(EDEM_REF))
+            self.assertEqual(self.session.opened[-1][0].__name__, "GuideScreen")
+            self.session.opened[:] = []
+            self.session.current_dialog = object()
+            pending[0][1](ref=Ref(EDEM_REF))
+            self.assertEqual(self.session.opened, [], "a late PIN answer cannot reopen a guide after leaving")
+        finally:
+            parentalControl.isServicePlayable = original
+
     def test_one_lookup_at_a_time_and_none_after_leaving(self):
         self.press_epg()
         self.press_epg()
