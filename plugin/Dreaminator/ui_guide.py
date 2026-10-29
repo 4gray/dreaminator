@@ -70,7 +70,6 @@ def build_skin(width, fonts):
     s = T.Skin(width, fonts)
     b = [s.box(0, 0, T.RAIL_W, 1080, T.RAIL),
          s.image(72, 48, 48, 48, "mark", z=1),
-         s.text(72, 48, 48, 48, "D", 26, T.ON_ACCENT, semi=True, halign="center"),
          s.label("crumbs", 200, 40, 1400, 30, 22, T.MUTED),
          s.label("channel", 200, 70, 1400, 52, 40, T.TEXT, semi=True),
          s.label("day", 200, 132, 1000, 40, 28, T.TEXT_2, semi=True),

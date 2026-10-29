@@ -100,6 +100,17 @@ Description: Плейлисты IPTV и избранное для Enigma2 с п�
 		{name: "./etc/init.d/", mode: 0o755},
 		{name: "./etc/init.d/dreaminator", mode: 0o755, data: initData},
 	}
+	// Binary distributions retain the project's and dependencies' notices.
+	data = append(data, entry{name: "./usr/share/", mode: 0o755},
+		entry{name: "./usr/share/doc/", mode: 0o755},
+		entry{name: "./usr/share/doc/dreaminator/", mode: 0o755})
+	for _, name := range []string{"LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		notice, err := os.ReadFile(name)
+		if err != nil {
+			log.Fatal(err)
+		}
+		data = append(data, entry{name: "./usr/share/doc/dreaminator/" + name, mode: 0o644, data: notice})
+	}
 	for _, dir := range []string{"./usr/lib/", "./usr/lib/enigma2/", "./usr/lib/enigma2/python/",
 		"./usr/lib/enigma2/python/Plugins/", extensionsDest} {
 		data = append(data, entry{name: dir, mode: 0o755})

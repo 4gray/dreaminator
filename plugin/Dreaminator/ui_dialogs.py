@@ -40,7 +40,6 @@ def about_skin(width):
     s = T.Skin(width, _fonts())
     b = [s.box(0, 0, T.RAIL_W, 1080, T.RAIL),
          s.image(72, 48, 48, 48, "mark", z=1),
-         s.text(72, 48, 48, 48, "D", 26, T.ON_ACCENT, semi=True, halign="center"),
          s.text(200, 44, 1200, 56, "О приложении", 44, T.TEXT, semi=True),
          s.label("version", 200, 104, 1200, 32, 24, T.MUTED),
          s.text(200, 180, 1500, 40, "Dreaminator — каталог IPTV и списки каналов для Enigma2", 30, T.TEXT),

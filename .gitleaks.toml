@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+# Exact synthetic TMDB fixture keys, used only by tests and mock servers.
+[[allowlists]]
+description = "Synthetic TMDB test credentials"
+condition = "AND"
+paths = ['''^internal/(app/tmdb_test|server/tmdb_test|tmdb/client_test)\.go$''']
+regexTarget = "secret"
+regexes = ['''^(SECRETkey0123456789SECRETkey0123|WRONGkey0123456789WRONGkey012345|OTHERkey0123456789OTHERkey012345)$''']

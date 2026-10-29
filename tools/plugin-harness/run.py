@@ -480,7 +480,8 @@ def main():
         check_bounds(plugin.scale_skin(plugin.SKIN, width))
 
     descriptors = plugin.Plugins()
-    assert [d.where for d in descriptors] == ["pluginmenu", "extensionsmenu"]
+    assert [d.where for d in descriptors] == ["pluginmenu", "extensionsmenu", "sessionstart"]
+    assert descriptors[-1].fnc is plugin.archive_session
 
     screen = plugin.DreaminatorScreen(session=None)
     screen.show()  # Enigma2 Session.execBegin calls Screen.show without arguments.

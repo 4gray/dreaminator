@@ -1,4 +1,4 @@
-VERSION ?= 0.11.1-r5
+VERSION ?= 0.11.2
 HOST    ?= dm520.fritz.box
 # Old Dreambox images ship an old Dropbear that only speaks ssh-rsa.
 SSH_OPTS ?= -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o StrictHostKeyChecking=accept-new
@@ -10,7 +10,7 @@ VU_BOX_ENV := GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0
 VU_BINARY  := dist/vuuno4kse/dreaminator
 VU_IPK     := dist/dreaminator_$(VERSION)_vuuno4kse.ipk
 
-.PHONY: dev test box ipk box-vuuno4kse ipk-vuuno4kse deploy logs icons ui-assets clean sim sim-logs sim-stop sim-reset docs plugin-test
+.PHONY: dev test box ipk box-vuuno4kse ipk-vuuno4kse deploy logs icons ui-assets clean sim sim-logs sim-stop sim-reset docs plugin-unit plugin-test
 
 ## dev: run locally against a fake receiver in ./dev (no OpenWebif)
 dev:
@@ -36,7 +36,7 @@ box-vuuno4kse:
 	mkdir -p $(dir $(VU_BINARY))
 	$(VU_BOX_ENV) go build -trimpath -ldflags "$(LDFLAGS)" -o $(VU_BINARY) ./cmd/dreaminator
 
-## ipk-vuuno4kse: separate experimental package; never overwrites the DM520 build
+## ipk-vuuno4kse: separate ARMv7 package; never overwrites the DM520 build
 ipk-vuuno4kse: box-vuuno4kse
 	go run ./tools/mkipk -version $(VERSION) -arch vuuno4kse -binary $(VU_BINARY) -out $(VU_IPK)
 
@@ -84,14 +84,17 @@ sim-stop:
 sim-reset: sim-stop
 	docker volume rm dreaminator-sim-data dreaminator-sim-e2 dreaminator-sim-epg dreaminator-sim-picon
 
-## plugin-test: run the Enigma2 plugin (Python 3 and 2.7) against the running `make sim`
-plugin-test:
-	mkdir -p dist
+## plugin-unit: Python 3 tests without a running simulator
+plugin-unit:
 	python3 tools/plugin-harness/test_lifecycle.py
 	python3 tools/plugin-harness/test_catalog.py
 	python3 tools/plugin-harness/test_ui_models.py
 	python3 tools/plugin-harness/test_shell.py
 	python3 tools/plugin-harness/test_bouquet.py
+
+## plugin-test: Python 3 and 2.7 unit/API tests against the running `make sim`
+plugin-test: plugin-unit
+	mkdir -p dist
 	python3 tools/plugin-harness/catalog_integration.py
 	python3 tools/plugin-harness/run.py dist/plugin-preview.html
 	docker run --rm --network container:dreaminator-sim -v "$(CURDIR)":/src:ro -w /src/tools/plugin-harness \
@@ -101,6 +104,7 @@ plugin-test:
 CHROME ?= /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
 docs:
-	"$(CHROME)" --headless=new --disable-gpu --no-pdf-header-footer \
-		--print-to-pdf="$(CURDIR)/docs/Dreaminator-install-Windows.pdf" "file://$(CURDIR)/docs/install-windows.html" 2>/dev/null
+	@profile=$$(mktemp -d); trap 'rm -rf "$$profile"' EXIT; \
+	"$(CHROME)" --headless=new --disable-gpu --user-data-dir="$$profile" --no-pdf-header-footer \
+		--print-to-pdf="$(CURDIR)/docs/Dreaminator-install-Windows.pdf" "file://$(CURDIR)/docs/install-windows.html"
 	@echo "docs/Dreaminator-install-Windows.pdf"

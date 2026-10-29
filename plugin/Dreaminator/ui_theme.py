@@ -153,7 +153,7 @@ def asset_specs():
         {"name": "pill_rail_open", "kind": "rrect", "w": 328, "h": 64, "r": 16, "color": ACCENT},
         {"name": "pill_rail_open_active", "kind": "rrect", "w": 328, "h": 64, "r": 16, "color": ACTIVE},
         {"name": "rail_shadow", "kind": "hgradient", "w": 48, "h": 1080, "color": "#000000", "from": 140, "to": 0},
-        {"name": "mark", "kind": "rrect", "w": 48, "h": 48, "r": 12, "color": ACCENT},
+        {"name": "mark", "kind": "brand", "w": 48, "h": 48},
         {"name": "pill_cat", "kind": "rrect", "w": CATS["w"], "h": CATS["row"], "r": 14, "color": ACCENT},
         {"name": "pill_cat_active", "kind": "rrect", "w": CATS["w"], "h": CATS["row"], "r": 14, "color": SURFACE},
         {"name": "pill_live", "kind": "rrect", "w": LIVE["w"], "h": LIVE["row"], "r": 14, "color": ACCENT},

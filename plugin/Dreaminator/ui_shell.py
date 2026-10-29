@@ -93,7 +93,6 @@ def build_skin(width):
     b.append(s.label("rail_panel", 0, 0, T.RAIL_OPEN_W, 1080, bg=T.RAIL, z=5))
     b.append(s.pixmap("rail_shadow", T.RAIL_OPEN_W, 0, 48, 1080, z=5, asset="rail_shadow"))
     b.append(s.image(72, 48, 48, 48, "mark", z=6))
-    b.append(s.text(72, 48, 48, 48, "D", 26, T.ON_ACCENT, semi=True, halign="center", z=7))
     b.append(s.label("rail_brand", 136, 44, 280, 40, 30, T.TEXT, semi=True, z=7))
     b.append(s.label("rail_brand_sub", 136, 84, 280, 26, 20, T.MUTED, z=7))
     for name, asset, w in (("rail_active_s", "pill_rail_active", 64), ("rail_active_w", "pill_rail_open_active", 328),

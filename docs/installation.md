@@ -6,9 +6,9 @@
 
 The tested configuration is **Dreambox DM520 with OpenHDF 6.4 build 137**, Linux 3.4, Python 2.7.15 and the FullHDLine 1920×1080 skin. This is a compatibility baseline, not a recommendation to replace a working receiver image.
 
-Use the current source build, **0.11.1-r5**, for the DM520. Build it with `make ipk` using Go 1.26.8 or newer. The older GitHub release **0.6.0 does not include the DM520 startup fixes, TV catalog or catch-up**. Check the version before installing a downloaded package.
+Download **0.11.2** from [GitHub Releases](https://github.com/4gray/dreaminator/releases/tag/v0.11.2), or build it with `make ipk` using Go 1.26.10 or newer. The older GitHub release **0.6.0 does not include the DM520 startup fixes, TV catalog or catch-up**. Check the version before installing a downloaded package.
 
-The default package contains a **Linux MIPS little-endian, soft-float** executable. Its `_all.ipk` filename and `Architecture: all` package field do not make it a universal binary. Other MIPS Enigma2 receivers and images are unverified. A separate experimental ARMv7 package targets **Vu+ Uno 4K SE / openATV 7.5**; see below. Other ARM/ARM64 receivers, stock DreamOS and other package managers are unverified.
+The default package contains a **Linux MIPS little-endian, soft-float** executable. Its `_all.ipk` filename and `Architecture: all` package field do not make it a universal binary. Other MIPS Enigma2 receivers and images are unverified. A separate ARMv7 package targets **Vu+ Uno 4K SE / openATV 7.5**; see below. Other ARM/ARM64 receivers, stock DreamOS and other package managers are unverified.
 
 The plugin supports Python 2.7 and Python 3 in the test harness. Python 3 tests do not certify a particular receiver or image. Full HD is tested on hardware; the 1280×720 layout is covered by layout tests and still needs hardware verification.
 
@@ -24,6 +24,15 @@ Dreaminator runs a local HTTP service on port **8088** without a login. Keep it 
 
 ## Install the package
 
+Download the IPK matching your receiver from [GitHub Releases](https://github.com/4gray/dreaminator/releases/latest). Both packages include the same catalog and plugin artwork:
+
+| Receiver | Package | CPU |
+| --- | --- | --- |
+| Dreambox DM520 / OpenHDF 6.4 | `dreaminator_0.11.2_all.ipk` | MIPS little-endian, soft-float |
+| Vu+ Uno 4K SE / openATV 7.5 | `dreaminator_0.11.2_vuuno4kse.ipk` | 32-bit ARMv7 |
+
+Download `SHA256SUMS` alongside the IPK. On Linux run `sha256sum --ignore-missing -c SHA256SUMS`; on macOS run `shasum -a 256 -c SHA256SUMS` after downloading all listed assets. On Windows use `Get-FileHash .\dreaminator_0.11.2_all.ipk -Algorithm SHA256` (substitute the Vu+ filename as needed) and compare it with the matching line in `SHA256SUMS`.
+
 ### USB drive
 
 1. Copy `dreaminator_<version>_all.ipk` to the root of a FAT32 USB drive.
@@ -36,7 +45,7 @@ For a more detailed Windows walkthrough, see the [printable HTML guide](install-
 
 ### SSH from a source checkout
 
-With Go 1.26.8+ installed on your computer:
+With Go 1.26.10+ installed on your computer:
 
 ```sh
 make deploy HOST=192.168.1.45
@@ -46,37 +55,37 @@ Replace the example address with your receiver's IP or hostname. This builds the
 
 ### Manual installation
 
-Build with `make ipk`, or obtain a package whose version and architecture match your receiver. Copy it to `/tmp` using your preferred transfer tool, then run on the receiver:
+Download the matching release package, or build it with `make ipk` for DM520. Copy it to `/tmp` using your preferred transfer tool, then run on the receiver:
 
 ```sh
-opkg install /tmp/dreaminator_0.11.1-r5_all.ipk
+opkg install /tmp/dreaminator_0.11.2_all.ipk
 ```
 
 The service starts immediately and on subsequent boots. Restart the Enigma2 GUI to load the plugin. Installing over an earlier version retains playlists and lists; back up `/etc/dreaminator/` and `/etc/enigma2/` before upgrading.
 
-### Vu+ Uno 4K SE / openATV 7.5 (experimental)
+### Vu+ Uno 4K SE / openATV 7.5
 
-This target is for the **32-bit ARMv7** Uno 4K SE (`vuuno4kse`). The reference receiver reports openATV 7.5 dated 29 December 2024, with the MetrixHD 1280×720 skin. HD assets are included, but GUI, physical-remote and playback behavior still require testing on that receiver. You do not need to reflash openATV to try the package.
+This target is for the **32-bit ARMv7** Uno 4K SE (`vuuno4kse`). The reference receiver reports openATV 7.5 dated 29 December 2024, with the MetrixHD 1280×720 skin. The maintainer has confirmed testing on this receiver. HD assets are included. This does not certify other Vu+ models, images, codecs or provider streams. You do not need to reflash openATV to try the package.
 
-Build on your computer with Go 1.26.8 or newer:
+Download `dreaminator_0.11.2_vuuno4kse.ipk` from [the release](https://github.com/4gray/dreaminator/releases/tag/v0.11.2). To build from source instead, use Go 1.26.10 or newer:
 
 ```sh
 make ipk-vuuno4kse
 ```
 
-Use **`dist/dreaminator_0.11.1-r5_vuuno4kse.ipk`**. The `_all.ipk` file is the Dreambox MIPS build and cannot run on this Vu+. ARM and MIPS binaries are built into separate paths, and both IPKs can coexist in `dist/`. The ordinary `make deploy` still targets DM520/MIPS, even if you change `HOST`; it does not select the ARM package.
+Use **`dist/dreaminator_0.11.2_vuuno4kse.ipk`**. The `_all.ipk` file is the Dreambox MIPS build and cannot run on this Vu+. ARM and MIPS binaries are built into separate paths, and both IPKs can coexist in `dist/`. The ordinary `make deploy` still targets DM520/MIPS, even if you change `HOST`; it does not select the ARM package.
 
 For USB installation, copy the `_vuuno4kse.ipk` file to a FAT32 drive and follow the local-extension steps above. For SSH installation, copy that file to the receiver's `/tmp/` and run:
 
 ```sh
-opkg install /tmp/dreaminator_0.11.1-r5_vuuno4kse.ipk
+opkg install /tmp/dreaminator_0.11.2_vuuno4kse.ipk
 ```
 
 Restart the **Enigma2 GUI** from the receiver's menu. Open **Plugins → Dreaminator**, then use the shown address on your phone/tablet (`http://<receiver-address>:8088`). OpenWebif is required; install EPGImport if you want the guide in native bouquets/infobar. Before updating an existing installation, back up `/etc/dreaminator/` and `/etc/enigma2/` as described above.
 
-For the first hardware test, check:
+After installing or updating, check:
 
-1. The web interface opens and reports version `0.11.1-r5`.
+1. The web interface opens and reports version `0.11.2`.
 2. The TV catalog fits the 1280×720 screen; arrows, OK, Back and color keys work.
 3. A known live channel plays, and Back returns to the catalog correctly. If your provider has VOD, also test opening a movie/episode and returning from it.
 4. **Send to TV** creates the expected bouquet; test EPG import if EPGImport is installed.
@@ -159,7 +168,7 @@ Restart the **Enigma2 GUI** after installation. A service restart alone does not
 
 Use the channel's stream check to inspect HTTP response time, container, codecs and download speed. A probe temporarily uses one provider connection and may interrupt viewing on a single-connection subscription. Container support does not guarantee codec support. Playback, seeking, subtitles and audio depend on the receiver image, player and provider. DM520 HEVC is specified only up to Full HD, not 4K; see the [manufacturer's quick guide](https://dreambox.de/download/Dreambox_DM520_QuickGuide_122016.pdf).
 
-On Linux 3.4, use a package built with Go 1.26.8+; the Go 1.26.0 build crashed at startup with `futexwakeup ... returned -89` during hardware testing.
+On Linux 3.4, use a package built with Go 1.26.10+; the Go 1.26.0 build crashed at startup with `futexwakeup ... returned -89` during hardware testing.
 
 </details>
 

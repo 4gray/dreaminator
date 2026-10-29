@@ -4,13 +4,13 @@
 
 ## Toolchain
 
-- **Go 1.26.8+** for the service and DM520 cross-compilation.
+- **Go 1.26.10+** for the service and DM520 cross-compilation.
 - **Node.js 20+** for browser-module regression tests.
 - **Python 3** for the plugin harness; Python 2.7 is also tested in Docker.
 - **Docker** for the virtual receiver (OrbStack works on macOS).
 - **Google Chrome** for `make docs`, which prints the Windows HTML guide to PDF.
 
-The compiler version matters on old receiver kernels. Go 1.26.0 crashed with `futexwakeup ... returned -89` on the real DM520's Linux 3.4 kernel even though the executable ran in QEMU. Go 1.26.8 was verified on that receiver.
+The compiler version matters on old receiver kernels. Go 1.26.0 crashed with `futexwakeup ... returned -89` on the real DM520's Linux 3.4 kernel even though the executable ran in QEMU. Go 1.26.8 was verified on that receiver. Current releases require 1.26.10+ to include the crypto/x509 security fix GO-2026-6809.
 
 ## Everyday commands
 
@@ -20,7 +20,7 @@ make test         # go vet, Go tests and Node receiver-editor tests
 make box          # Linux MIPS little-endian, soft-float executable
 make ipk          # dist/dreaminator_<version>_all.ipk
 make box-vuuno4kse # static Linux ARMv7 binary in dist/vuuno4kse/dreaminator
-make ipk-vuuno4kse # dist/dreaminator_<version>_vuuno4kse.ipk (experimental)
+make ipk-vuuno4kse # dist/dreaminator_<version>_vuuno4kse.ipk
 make deploy HOST=192.168.1.45  # build and install over SSH
 make logs         # receiver log, using HOST
 make icons        # regenerate application icons
@@ -32,7 +32,7 @@ make docs         # printable Windows guide
 
 The Vu+ target uses `GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0`. Its static executable has no dependency on the image's libc or an ARM cross-compiler. The IPK declares `Architecture: vuuno4kse`, the receiver's machine architecture, so normal `opkg` architecture checks distinguish it from a DM520 package. The packager checks ELF class, byte order, CPU and static linking before creating either package. `Architecture: all` remains the legacy DM520 label for compatibility; it is not a universal executable.
 
-Run both `make ipk` and `make ipk-vuuno4kse` to produce the packages side by side. `make deploy HOST=...` always builds and deploys the **DM520** package; use the [manual Vu+ installation](installation.md#vu-uno-4k-se--openatv-75-experimental) for the ARM package. The existing simulator emulates DM520/MIPS, so a passing simulator run alone does not validate the ARM executable or openATV hardware behavior.
+Run both `make ipk` and `make ipk-vuuno4kse` to produce the packages side by side. `make deploy HOST=...` always builds and deploys the **DM520** package; use the [manual Vu+ installation](installation.md#vu-uno-4k-se--openatv-75) for the ARM package. The existing simulator emulates DM520/MIPS, so a passing simulator run alone does not validate the ARM executable or openATV hardware behavior.
 
 ## Virtual Dreambox
 
@@ -115,3 +115,9 @@ State is written atomically with file/directory synchronization and a previous-v
 ## Contributing
 
 Include the receiver model, image/build, Python version and Dreaminator version in a bug report. Describe how to reproduce the problem and attach redacted logs. Distinguish simulator results from real receiver checks. For changes, run the relevant checks and `make test`; native plugin changes also need `make sim` and `make plugin-test`. Before pushing a PR branch, follow the repository owner's local Codex and Greptile review requirements.
+
+## CI and releases
+
+GitHub Actions runs `make test`, `make plugin-unit`, deterministic artwork regeneration, both IPK builds and `tools/check_packages.py`. A Docker MIPS simulator runs Python 2.7 and 3 unit/API integration tests. QEMU smoke-tests the MIPS32 soft-float and ARMv7 executables. These checks do not replace receiver/player testing.
+
+For a release, update `VERSION` in the Makefile, the user guides and `docs/releases/v<version>.md`; refresh the printable PDF with `make docs`. After local review and a green main CI run, push the matching `v<version>` tag. The release workflow validates the version, reruns the same CI and publishes both IPKs, the installation PDF and `SHA256SUMS`. Release jobs alone receive write permission; PR jobs do not receive repository secrets.

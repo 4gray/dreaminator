@@ -1,17 +1,16 @@
-<p align="center">
-  <img src="web/static/icon.svg" width="104" height="104" alt="Dreaminator app icon">
-</p>
-
-<h1 align="center">Dreaminator</h1>
+<h1 align="center">
+  <img src="docs/brand/dreaminator-wordmark.png" width="720" alt="Dreaminator — IPTV for Enigma2">
+</h1>
 
 <p align="center">
-  <strong>Your IPTV, at home on your Dreambox.</strong><br>
+  <strong>Your IPTV, at home on your Enigma2 receiver.</strong><br>
   Organize channels from your tablet. Browse and watch with your remote.
 </p>
 
 <p align="center">
-  <a href="https://github.com/4gray/dreaminator/releases"><img src="https://img.shields.io/github/v/release/4gray/dreaminator?style=flat-square&amp;color=6374ee" alt="Latest GitHub release"></a>
-  <img src="https://img.shields.io/badge/source_build-0.11.1--r5-6374ee?style=flat-square" alt="Current source build 0.11.1-r5">
+  <a href="https://github.com/4gray/dreaminator/releases/latest"><img src="https://img.shields.io/github/v/release/4gray/dreaminator?style=flat-square&amp;color=0284c7" alt="Latest GitHub release"></a>
+  <a href="https://github.com/4gray/dreaminator/actions/workflows/ci.yml"><img src="https://github.com/4gray/dreaminator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-38445b?style=flat-square" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/platform-Enigma2-38445b?style=flat-square" alt="Platform: Enigma2">
   <img src="https://img.shields.io/badge/tested_on-Dreambox_DM520-38445b?style=flat-square" alt="Tested on Dreambox DM520">
 </p>
@@ -45,16 +44,16 @@ On the TV, a native full-screen catalog gives you live channels, programme guide
 | --- | --- |
 | **Tested receiver** | **Dreambox DM520** |
 | **Tested image** | **OpenHDF 6.4 build 137**, Linux 3.4, Python 2.7.15 |
-| **Recommended Dreaminator build for this setup** | **0.11.1-r5**, built from current source with Go 1.26.8+ |
-| TV layout | Full HD 1920×1080 tested; HD 1280×720 layout tested in the harness, hardware verification pending |
+| **Recommended Dreaminator build for this setup** | **0.11.2**, available from GitHub Releases |
+| TV layout | Full HD 1920×1080 on DM520; HD 1280×720 on the maintainer’s Vu+ setup |
 | Other MIPS Enigma2 receivers/images | Unverified; compatibility depends on image, Python, player and plugins |
-| Vu+ Uno 4K SE / openATV 7.5 | Experimental ARMv7 package via `make ipk-vuuno4kse`; hardware verification pending |
+| Vu+ Uno 4K SE / openATV 7.5 | Tested on a receiver by the maintainer; separate **ARMv7** package |
 | Other ARM/ARM64 receivers and stock DreamOS | Unverified; neither package certifies these configurations |
 | Browser | Tablet, phone or desktop browser on the receiver's home network |
 
 The default `_all.ipk` contains a **MIPS little-endian, soft-float** executable. The separate `_vuuno4kse.ipk` contains a **32-bit ARMv7** executable and declares the receiver's machine architecture. Both builds share the same Python plugin and HD/FHD assets. Python 2.7 and 3 are covered by the plugin harness; this does not certify every image. OpenWebif is required for receiver controls; EPGImport is needed for the native channel-list/infobar guide.
 
-> **Choose the right version.** The historical GitHub release is **0.6.0**. It predates the DM520 startup fixes, TV catalog and catch-up. For the tested DM520 setup, build **0.11.1-r5** from source. The tested OpenHDF version is a compatibility baseline; you do not need to reflash a working receiver merely to match it.
+> **Choose the right package.** Download **0.11.2** from [Releases](https://github.com/4gray/dreaminator/releases/latest). The `_all.ipk` is for **Dreambox DM520 (MIPS)**; `_vuuno4kse.ipk` is for **Vu+ Uno 4K SE (ARMv7)**. They are not interchangeable. The tested image versions are compatibility baselines; you do not need to reflash a working receiver merely to match them. The old 0.6.0 release predates the startup fixes, TV catalog and catch-up.
 
 Playback depends on the receiver, image and provider. The DM520's [manufacturer specification](https://dreambox.de/download/Dreambox_DM520_QuickGuide_122016.pdf) lists HEVC up to Full HD. See the [roadmap](ROADMAP.md) for remaining audio, seeking and physical-remote checks.
 
@@ -62,19 +61,20 @@ Playback depends on the receiver, image and provider. The DM520's [manufacturer 
 
 ## Quick start
 
-1. **Build a compatible package** on your computer with [Go 1.26.8+](docs/development.md#toolchain):
+1. **Download [Dreaminator 0.11.2](https://github.com/4gray/dreaminator/releases/tag/v0.11.2)** for your receiver:
 
-   ```sh
-   make ipk
-   ```
+   | Receiver | Release asset |
+   | --- | --- |
+   | Dreambox DM520 / OpenHDF 6.4 | `dreaminator_0.11.2_all.ipk` — MIPS little-endian |
+   | Vu+ Uno 4K SE / openATV 7.5 | `dreaminator_0.11.2_vuuno4kse.ipk` — ARMv7 |
 
-2. **Install** `dist/dreaminator_0.11.1-r5_all.ipk` from a FAT32 USB drive through **Menu → Setup → Software management → Install local extension**. Accept the GUI restart. For SSH installation, use `make deploy HOST=<receiver-address>`.
+2. **Install the matching IPK** from a FAT32 USB drive through **Menu → Setup → Software management → Install local extension**, then accept the GUI restart. For SSH installation and checksums, follow the [setup guide](docs/installation.md#install-the-package).
 3. **Open** `http://<receiver-address>:8088` on your tablet, or scan the QR code in **Menu → Plugins → Dreaminator → Settings**.
 4. **Add a source**, choose channels or groups, then select **Send to TV**. The TV catalog can browse your source independently of bouquet selection.
 
 **[Full setup and troubleshooting](docs/installation.md)** · **[Windows walkthrough (PDF)](docs/Dreaminator-install-Windows.pdf)** · **[Printable HTML](docs/install-windows.html)**
 
-For **Vu+ Uno 4K SE with openATV 7.5**, run `make ipk-vuuno4kse` and install `dist/dreaminator_0.11.1-r5_vuuno4kse.ipk` instead. See the [Vu+ test installation](docs/installation.md#vu-uno-4k-se--openatv-75-experimental). The ordinary `make ipk`, `make deploy` and simulator remain DM520/MIPS builds; the ARM build uses a separate binary path and does not replace them.
+For source builds, use [Go 1.26.10+](docs/development.md#toolchain) and `make ipk` (Dreambox) or `make ipk-vuuno4kse` (Vu+). The ordinary `make deploy` and simulator target DM520/MIPS. See the [Vu+ installation steps](docs/installation.md#vu-uno-4k-se--openatv-75).
 
 Application labels currently use **Russian**; documentation is in English. The web interface has no login and is intended for a trusted home network. Keep port 8088 private to that network.
 
@@ -110,6 +110,8 @@ make plugin-test  # Python 2.7/3 plugin and simulator integration
 ```
 
 Bug reports are most useful with the receiver model, image/build, Dreaminator version and steps to reproduce. Redact provider credentials, MAC addresses, stream URLs and API keys. See the [development guide](docs/development.md) and [roadmap](ROADMAP.md) for implementation details and work ahead.
+
+The project is licensed under [MIT](LICENSE). See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 Geist fonts are bundled under the [SIL Open Font License](plugin/Dreaminator/fonts/OFL.txt). Optional metadata comes from TMDB.
 

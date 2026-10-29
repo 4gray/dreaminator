@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"dreaminator/internal/brand"
+
 	"golang.org/x/image/vector"
 )
 
@@ -80,6 +82,9 @@ func px(v, scale float64) int { return int(math.Round(v * scale)) }
 
 func render(s spec, scale float64) *image.NRGBA {
 	w, h := px(s.W, scale), px(s.H, scale)
+	if s.Kind == "brand" {
+		return brand.Render(w)
+	}
 	r := s.R * scale
 	c := parse(s.Color)
 	switch s.Kind {

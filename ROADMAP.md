@@ -2,7 +2,7 @@
 
 [README](README.md) · [Features](docs/features.md) · [Development](docs/development.md)
 
-This document separates implemented features, simulator checks and real receiver validation. The current source package is **0.11.1-r5**, combining the EPG-key integration, EPGImport IPTV references and separate Dreambox/Vu+ builds. Completed implementation does not imply that every playback or physical-remote check has passed.
+This document separates implemented features, simulator checks and real receiver validation. The current release is **0.11.2**, combining the EPG-key integration, EPGImport IPTV references and separate Dreambox/Vu+ builds. Completed implementation does not imply that every playback or physical-remote check has passed.
 
 ## Release overview
 
@@ -334,3 +334,7 @@ Applies to Stalker, M3U and Xtream once their video catalogs exist.
 - Add new entries to existing receiver bouquets (view/edit/remove/copy/undo already exist).
 - Optional Android WebView wrapper with receiver discovery.
 - Optional remote support over a private VPN.
+
+## Public release 0.11.2
+
+Packages for DM520 (MIPS) and Vu+ Uno 4K SE (ARMv7), the Modular Stream branding, CI, MIT license and updated installation guides. The maintainer confirmed Vu+ Uno 4K SE / openATV 7.5 hardware testing on 29 October 2026. Other receiver models and unlisted image/player combinations remain unverified. Release validation is documented in `docs/releases/v0.11.2.md`.
