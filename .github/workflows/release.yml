@@ -50,6 +50,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" dist/release/* \
-            --verify-tag --latest --title "Dreaminator ${TAG#v}" \
-            --notes-file "docs/releases/$TAG.md"
+          if draft=$(gh release view "$TAG" --json isDraft --jq '.isDraft'); then
+            test "$draft" = true  # Never replace an already published release.
+            gh release upload "$TAG" dist/release/* --clobber
+            gh release edit "$TAG" --draft=false --latest \
+              --title "Dreaminator ${TAG#v}" --notes-file "docs/releases/$TAG.md"
+          else
+            gh release create "$TAG" dist/release/* \
+              --verify-tag --latest --title "Dreaminator ${TAG#v}" \
+              --notes-file "docs/releases/$TAG.md"
+          fi
