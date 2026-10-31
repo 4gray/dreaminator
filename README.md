@@ -43,9 +43,9 @@ On the TV, use your remote to see what's on, check the programme guide, or open 
 
 ## Installation
 
-Version **0.11.2** is ready as a release draft. While publication is pending, you can [build it from source](docs/development.md). The last published version, 0.6.0, does not include the TV catalog shown here.
+**0.11.2** is the recommended version for the receivers below. It includes the TV catalog, catch-up and startup fixes missing from the older 0.6.0 release. You can also [build it from source](docs/development.md).
 
-1. **Choose the package for your receiver** from [GitHub Releases](https://github.com/4gray/dreaminator/releases) when 0.11.2 is published:
+1. **Choose the package for your receiver** from [GitHub Releases](https://github.com/4gray/dreaminator/releases/tag/v0.11.2):
 
    | Receiver / tested image | Package |
    | --- | --- |

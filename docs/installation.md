@@ -6,7 +6,7 @@
 
 The tested configuration is **Dreambox DM520 with OpenHDF 6.4 build 137**, Linux 3.4, Python 2.7.15 and the FullHDLine 1920×1080 skin. This is a compatibility baseline, not a recommendation to replace a working receiver image.
 
-**0.11.2 is currently a release draft.** Until it is published, build it from source with `make ipk` (DM520) or `make ipk-vuuno4kse` (Vu+) using Go 1.26.10 or newer. The packages will be available from [GitHub Releases](https://github.com/4gray/dreaminator/releases) after publication. The older GitHub release **0.6.0 does not include the DM520 startup fixes, TV catalog or catch-up**. Check the version before installing a downloaded package.
+Download **0.11.2** from [GitHub Releases](https://github.com/4gray/dreaminator/releases/tag/v0.11.2), or build it from source with `make ipk` (DM520) or `make ipk-vuuno4kse` (Vu+) using Go 1.26.10 or newer. The older GitHub release **0.6.0 does not include the DM520 startup fixes, TV catalog or catch-up**. Check the version before installing a downloaded package.
 
 The default package contains a **Linux MIPS little-endian, soft-float** executable. Its `_all.ipk` filename and `Architecture: all` package field do not make it a universal binary. Other MIPS Enigma2 receivers and images are unverified. A separate ARMv7 package targets **Vu+ Uno 4K SE / openATV 7.5**; see below. Other ARM/ARM64 receivers, stock DreamOS and other package managers are unverified.
 
@@ -24,7 +24,7 @@ Dreaminator runs a local HTTP service on port **8088** without a login. Keep it 
 
 ## Install the package
 
-Build the IPK matching your receiver, or download it from [GitHub Releases](https://github.com/4gray/dreaminator/releases) once 0.11.2 is published. Both packages include the same catalog and plugin artwork:
+Download the IPK matching your receiver from [GitHub Releases](https://github.com/4gray/dreaminator/releases/tag/v0.11.2), or build it from source. Both packages include the same catalog and plugin artwork:
 
 | Receiver | Package | CPU |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ The service starts immediately and on subsequent boots. Restart the Enigma2 GUI 
 
 This target is for the **32-bit ARMv7** Uno 4K SE (`vuuno4kse`). The reference receiver reports openATV 7.5 dated 29 December 2024, with the MetrixHD 1280×720 skin. The maintainer has confirmed testing on this receiver. HD assets are included. This does not certify other Vu+ models, images, codecs or provider streams. You do not need to reflash openATV to try the package.
 
-Build `dreaminator_0.11.2_vuuno4kse.ipk` using Go 1.26.10 or newer. It will also be available from [GitHub Releases](https://github.com/4gray/dreaminator/releases) once 0.11.2 is published:
+Build `dreaminator_0.11.2_vuuno4kse.ipk` using Go 1.26.10 or newer. The prebuilt package is available from [GitHub Releases](https://github.com/4gray/dreaminator/releases/tag/v0.11.2):
 
 ```sh
 make ipk-vuuno4kse

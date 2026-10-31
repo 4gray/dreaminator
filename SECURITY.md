@@ -1,6 +1,6 @@
 # Security
 
-Security fixes target the current development version. Version 0.11.2 is still a release draft; see the [installation guide](docs/installation.md) for the current build and download status. Older versions are not maintained separately.
+Use the latest stable release, currently **0.11.2**. Security fixes target the current release and development branch; older versions are not maintained separately. See the [installation guide](docs/installation.md) for supported receivers and package selection.
 
 Dreaminator is intended for a trusted home network. Its HTTP interface has no login; do not expose port 8088 to the internet. Provider credentials and playlists are stored in `/etc/dreaminator/` on the receiver. The service does not transcode streams.
 
