@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   checks:
-    name: Tests and generated assets
+    name: Go, web and Python tests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -37,6 +37,21 @@ jobs:
           /tmp/gitleaks dir --redact .
       - run: make test
       - run: make plugin-unit
+
+  artwork:
+    name: Generated artwork (ARM64)
+    # Keep the reference renderer on one architecture: vector curve coverage
+    # can round a few alpha values differently on AMD64 and ARM64.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
+          check-latest: true
       - name: Check generated artwork
         run: |
           make icons ui-assets

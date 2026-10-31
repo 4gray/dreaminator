@@ -5,6 +5,8 @@
 //	go run ./tools/genui
 //
 // Full-HD artwork goes to ui/fhd, the same shapes at 2/3 to ui/hd.
+// Reference PNGs are generated on ARM64, matching CI's artwork job. Vector
+// curve coverage can round a few alpha values differently on AMD64.
 package main
 
 import (
