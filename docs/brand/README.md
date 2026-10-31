@@ -4,11 +4,11 @@ The approved Modular Stream concept is used in the README, web app and Enigma2 p
 
 - Accent: cyan `#38bdf8`; graphite `#171b22`; off-white `#f4f6f8`.
 - The segmented stem represents a digital stream; the triangle represents playback.
-- `dreaminator-wordmark.png` is the README banner, generated with built-in ImageGen using the approved Modular Stream concept as its edit reference. Earlier explorations are archived outside the release repository.
+- `dreaminator-wordmark.png` is the alternative wordmark banner, generated with built-in ImageGen using the approved Modular Stream concept as its edit reference. Earlier explorations are archived outside the release repository.
 - The compact mark was redrawn as deterministic geometry in `internal/brand/brand.go`. It deliberately adds cyan to the three stream segments for visibility at small sizes.
 - `make icons` regenerates the web SVG, 192/512 px PNGs and the plugin menu PNG. The latter remains 100×40 with a centred 40×40 mark and transparent side gutters.
 - `make ui-assets` regenerates the catalog, guide and About marks at 48 px (Full HD) and 32 px (HD), using the same renderer.
-- The README banner has a graphite background for consistent contrast in light and dark GitHub themes. The app icons use the same graphite tile with transparent rounded corners.
+- The README uses the compact app icon at 88 px. Its graphite tile has transparent rounded corners and works in light and dark GitHub themes. The alternative wordmark retains its graphite background.
 
 ## Exact ImageGen edit prompt
 

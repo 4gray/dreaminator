@@ -1,0 +1,68 @@
+[
+  {
+    "file": "movies.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "04e1054e2834cedd6ddcbddd73cfc77226ffe4b1b715ddc1b4c7bcc7d887becc"
+  },
+  {
+    "file": "movie-details.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "3e9d3f7eb79c731c40df044de012d3772af10ae786ef071060c93cbc9b54e90d"
+  },
+  {
+    "file": "navigation.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "8c3ff16164d5c35d0e1c77f773906858141769e83cf03065e68a75a35d715eca"
+  },
+  {
+    "file": "categories.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "fa33c2b2bb0cf917b0c904b950b36ceedc1be460f7169675743472f3c3c726a1"
+  },
+  {
+    "file": "favorites.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "01630031f2648b787313a6321e2af14a7aec3779d1263adf4dd1e4e6c35c3839"
+  },
+  {
+    "file": "recently-watched.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "21fa363d8efd8edfdbe131f3b4ca64dd78fa673aad6f96199c67096be64de310"
+  },
+  {
+    "file": "search.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "7ed0bb9219c9c118773aa0717b6df98aaf15605561e8c984db2eaa0beae7d7ab"
+  },
+  {
+    "file": "series.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "e564999faf69408aef9b5faef4231b1c202b9dab71aced0d9b4dd54f8e201a05"
+  },
+  {
+    "file": "episodes.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "dc0f21d65663da60fd77213d96d9bf074e914c5d872a8670be2b5e5797443289"
+  },
+  {
+    "file": "live-tv.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "a2ba79575d6aff2fb145f7b6065a8b71fca4a41ebc497e8efaf516064a3521c5"
+  },
+  {
+    "file": "sort.png",
+    "width": 1920,
+    "height": 1080,
+    "sha256": "d5e939c2d0d9a6bad1c1ac9af04febf7e80fda29b61e0e74dda0c54dc5e96b82"
+  }
+]

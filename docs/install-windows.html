@@ -46,11 +46,11 @@
 <p class="note">Write the address from step 1 above. Replace RECEIVER-IP with it in the examples below. Application labels currently use Russian; this guide gives their English meaning.</p>
 <h2>Before you start</h2>
 <ul>
-<li>Download <code>dreaminator_0.11.2_all.ipk</code> for DM520, or <code>dreaminator_0.11.2_vuuno4kse.ipk</code> for Vu+ Uno 4K SE, from <a href="https://github.com/4gray/dreaminator/releases/tag/v0.11.2">GitHub Releases</a>. Keep its full filename, including <code>.ipk</code>; Windows may hide that extension.</li>
+<li>Once 0.11.2 is published, download <code>dreaminator_0.11.2_all.ipk</code> for DM520, or <code>dreaminator_0.11.2_vuuno4kse.ipk</code> for Vu+ Uno 4K SE, from <a href="https://github.com/4gray/dreaminator/releases">GitHub Releases</a>. Keep its full filename, including <code>.ipk</code>; Windows may hide that extension.</li>
 <li>A FAT32 USB drive, a Windows computer on the same network, the receiver remote and a tablet or phone.</li>
 <li>The receiver powered on or in standby, connected to the router.</li>
 </ul>
-<p class="note">Tested baseline: DM520, OpenHDF 6.4 build 137, Python 2.7.15. Current release: 0.11.2. Download the matching IPK from GitHub Releases. The historical 0.6.0 release lacks the DM520 startup fixes and newer catalog features. See the repository setup guide before choosing a package. The “all” package contains a MIPS executable for DM520; Vu+ Uno 4K SE / openATV 7.5 uses the separate vuuno4kse ARMv7 package, tested by the maintainer. They are not interchangeable.</p>
+<p class="note">Tested baseline: DM520, OpenHDF 6.4 build 137, Python 2.7.15. Version 0.11.2 is a release draft. Until publication, build the matching IPK from source using the repository development guide. The historical 0.6.0 release lacks the DM520 startup fixes and newer catalog features. See the repository setup guide before choosing a package. The “all” package contains a MIPS executable for DM520; Vu+ Uno 4K SE / openATV 7.5 uses the separate vuuno4kse ARMv7 package, tested by the maintainer. They are not interchangeable.</p>
 <div class="step">
 <h2><span class="n">1</span>Find the receiver's network address</h2>
 <ol>
@@ -138,7 +138,7 @@
 <pre>/etc/init.d/dreaminator restart
 tail -n 100 /tmp/dreaminator.log</pre>
 </div>
-<p class="foot">Dreaminator · English installation guide · https://github.com/4gray/dreaminator<br>Current release: 0.11.2. Always check the package version and compatibility before installation.</p>
+<p class="foot">Dreaminator · English installation guide · https://github.com/4gray/dreaminator<br>Prepared version: 0.11.2 (release draft). Always check the package version and compatibility before installation.</p>
 
 </body>
 </html>

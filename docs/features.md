@@ -92,7 +92,7 @@ Optional TMDB integration supplies localized descriptions, ratings, cast photogr
 ## Current limits
 
 - Application labels currently use Russian; this documentation is in English.
-- Other receivers/images and HD rendering are not yet hardware-certified.
+- Receiver/image combinations beyond the documented Dreambox DM520 and Vu+ Uno 4K SE setups remain unverified.
 - Xtream/M3U movies and series, Xtream/Stalker archive integration, cross-source search and search history are planned.
 - Playback resume, watched tracking, automatic next episode and downloads are planned.
 - Manual EPG matching and `.xz` guides are not available.
