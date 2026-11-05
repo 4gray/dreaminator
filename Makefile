@@ -10,7 +10,7 @@ VU_BOX_ENV := GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0
 VU_BINARY  := dist/vuuno4kse/dreaminator
 VU_IPK     := dist/dreaminator_$(VERSION)_vuuno4kse.ipk
 
-.PHONY: dev test box ipk box-vuuno4kse ipk-vuuno4kse deploy logs icons ui-assets clean sim sim-logs sim-stop sim-reset docs plugin-unit plugin-test
+.PHONY: dev test web-test box ipk box-vuuno4kse ipk-vuuno4kse deploy logs icons ui-assets clean sim sim-logs sim-stop sim-reset docs plugin-unit plugin-test
 
 ## dev: run locally against a fake receiver in ./dev (no OpenWebif)
 dev:
@@ -20,7 +20,13 @@ dev:
 test:
 	go vet ./...
 	go test ./...
-	node --test web/receiver.test.mjs
+	node --test web/*.test.mjs
+
+## web-test: isolated responsive browser regression (requires Chrome and npx)
+web-test:
+	mkdir -p dist/web-test
+	go build -o dist/web-test/dreaminator ./cmd/dreaminator
+	DREAMINATOR_WEB_BINARY=dist/web-test/dreaminator node --test web/responsive.test.mjs
 
 ## box: cross-compile for the DM520 (Broadcom MIPS, little endian)
 box:

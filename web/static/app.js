@@ -147,7 +147,7 @@ async function refreshState(rerender = true) {
   if (!changed || !rerender || dragging || modalOpen) return;
   const [tab, sub] = route();
   if (tab === 'lists' && sub === 'receiver') return;
-  if (tab === 'sources' || tab === 'lists') render();
+  if (tab === 'sources' || tab === 'lists') await render();
   else if (tab === 'channels' && wasBusy && !busy()) render();
   else if (tab === 'settings') {
     const card = $('#epg-card'); if (card) card.replaceWith(epgCard());
@@ -268,6 +268,18 @@ function promptDialog(title, label, value = '', okText = 'Сохранить') {
 
 // Pointer-based drag & drop that works with fingers: grab the ⋮⋮ handle.
 function makeSortable(list, onDone) {
+  list.addEventListener('keydown', async (e) => {
+    const handle = e.target.closest('.grip');
+    const item = handle && handle.closest('.sortable-item');
+    if (!item || item.parentElement !== list || !['ArrowUp', 'ArrowDown'].includes(e.key)) return;
+    e.preventDefault();
+    const sibling = e.key === 'ArrowUp' ? item.previousElementSibling : item.nextElementSibling;
+    if (!sibling) return;
+    list.insertBefore(item, e.key === 'ArrowUp' ? sibling : sibling.nextElementSibling);
+    await onDone([...list.children].map((el) => el.dataset.id));
+    const moved = [...document.querySelectorAll('.sortable-item')].find((el) => el.dataset.id === item.dataset.id);
+    moved?.querySelector('.grip')?.focus();
+  });
   list.addEventListener('pointerdown', (e) => {
     const handle = e.target.closest('.grip');
     const item = handle && handle.closest('.sortable-item');
@@ -312,7 +324,7 @@ function makeSortable(list, onDone) {
   });
 }
 
-const grip = () => h('span', { class: 'icon-btn grip', 'aria-label': 'Перетащить' }, icon('grip'));
+const grip = () => h('button', { type: 'button', class: 'icon-btn grip', 'aria-label': 'Изменить порядок', title: 'Перетащите или используйте стрелки вверх и вниз' }, icon('grip'));
 
 function logo(ch) {
   const initials = (ch.name || '?').replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter(Boolean)
@@ -340,7 +352,12 @@ let renderToken = 0;
 async function render() {
   const token = ++renderToken;
   const [tab, ...rest] = route();
-  document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
+  document.querySelectorAll('.nav a').forEach((a) => {
+    const active = a.dataset.tab === tab;
+    a.classList.toggle('active', active);
+    if (active) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
   let el;
   try {
     switch (tab) {
@@ -490,7 +507,8 @@ function starButton(ch) {
   const paint = () => {
     const on = inBouquet(targetBouquet(), ch);
     btn.classList.toggle('on', on);
-    btn.setAttribute('aria-label', on ? 'Убрать из списка' : 'Добавить в список');
+    btn.setAttribute('aria-label', `${on ? 'Убрать из списка' : 'Добавить в список'}: ${ch.name}`);
+    btn.setAttribute('aria-pressed', String(on));
     btn.replaceChildren(icon(on ? 'starFill' : 'star'));
   };
   btn.addEventListener('click', async () => {
@@ -511,12 +529,13 @@ function starButton(ch) {
 }
 
 function channelRow(ch, sub) {
-  return h('div', { class: 'row' },
+  return h('div', { class: 'row channel-row' },
     logo(ch),
     h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, ch.name), sub && h('div', { class: 'row-sub' }, sub)),
-    h('button', { class: 'btn btn-sm btn-ghost', onclick: () => zap(ch), 'aria-label': `Включить ${ch.name} на телевизоре` }, icon('play'), 'На ТВ'),
-    probeButton(ch),
-    starButton(ch));
+    h('div', { class: 'row-actions' },
+      h('button', { class: 'btn btn-sm btn-ghost', onclick: () => zap(ch), 'aria-label': `Включить ${ch.name} на телевизоре` }, icon('play'), 'На ТВ'),
+      probeButton(ch),
+      starButton(ch)));
 }
 
 const probeButton = (ch) => h('button', { class: 'icon-btn', title: 'Проверить поток', 'aria-label': `Проверить поток ${ch.name}`, onclick: () => probeDialog(ch) }, icon('pulse'));
@@ -602,7 +621,7 @@ async function viewBouquets() {
   }));
   makeSortable(list, async (ids) => {
     try { await api.put('/api/bouquet-order', { ids }); } catch (e) { fail(e); }
-    refreshState().catch(() => {});
+    await refreshState().catch(() => {});
   });
   const create = async () => { const b = await createBouquetFlow(); if (b) go('lists', b.id); };
   return h('section', {},
@@ -627,19 +646,20 @@ function viewBouquet(id) {
 
   const key = (c) => `${c.source}/${c.id}`;
   const list = h('div', { class: 'list' }, b.channels.map((c) =>
-    h('div', { class: `row sortable-item ${c.missing ? 'missing' : ''}`, 'data-id': key(c) },
+    h('div', { class: `row channel-row sortable-item ${c.missing ? 'missing' : ''}`, 'data-id': key(c) },
       grip(),
       logo(c),
       h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, c.name),
         c.missing && h('div', { class: 'row-sub' }, 'Нет в плейлисте — на ТВ не попадёт')),
-      !c.missing && h('button', { class: 'icon-btn', 'aria-label': `Включить ${c.name} на телевизоре`, onclick: () => zap(c) }, icon('play')),
-      !c.missing && probeButton(c),
-      h('button', { class: 'icon-btn danger', 'aria-label': `Убрать ${c.name}`, onclick: () => removeChannel(c) }, icon('x')))));
+      h('div', { class: 'row-actions' },
+        !c.missing && h('button', { class: 'btn btn-sm btn-ghost', 'aria-label': `Включить ${c.name} на телевизоре`, onclick: () => zap(c) }, icon('play'), 'На ТВ'),
+        !c.missing && probeButton(c),
+        h('button', { class: 'icon-btn danger', 'aria-label': `Убрать ${c.name}`, onclick: () => removeChannel(c) }, icon('x'))))));
   makeSortable(list, async (ids) => {
     const byKey = new Map(b.channels.map((c) => [key(c), c]));
     const channels = ids.map((k) => byKey.get(k)).filter(Boolean).map((c) => ({ source: c.source, id: c.id, name: c.name }));
     try { await api.put(`/api/bouquets/${b.id}`, { channels }); } catch (e) { fail(e); }
-    refreshState().catch(() => {});
+    await refreshState().catch(() => {});
   });
 
   return h('section', {},
@@ -1379,6 +1399,11 @@ async function viewTMDBMatch() {
 }
 
 // ---------------------------------------------------------------- boot
+
+// Reserve the actual panel height, including wrapped copy and safe-area padding.
+new ResizeObserver(() => {
+  document.documentElement.style.setProperty('--apply-h', `${$('#applybar').getBoundingClientRect().height}px`);
+}).observe($('#applybar'));
 
 for (const a of document.querySelectorAll('.nav a')) a.prepend(icon(a.dataset.icon));
 // A stale search would hide the group or playlist the user just opened.

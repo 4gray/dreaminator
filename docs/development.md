@@ -17,6 +17,7 @@ The compiler version matters on old receiver kernels. Go 1.26.0 crashed with `fu
 ```sh
 make dev          # local service on :8088; receiver files under ./dev
 make test         # go vet, Go tests and Node receiver-editor tests
+make web-test     # isolated responsive browser regression (Chrome + npx)
 make box          # Linux MIPS little-endian, soft-float executable
 make ipk          # dist/dreaminator_<version>_all.ipk
 make box-vuuno4kse # static Linux ARMv7 binary in dist/vuuno4kse/dreaminator
@@ -29,6 +30,8 @@ make docs         # printable Windows guide
 ```
 
 `make dev` uses local directories and disables OpenWebif. The web interface is plain HTML, CSS and JavaScript embedded with Go's `embed`; it has no frontend build step. Local tests can load playlists and EPG using `file:///absolute/path` URLs. The package version defaults to the Makefile's `VERSION`; override it explicitly when preparing a different build.
+
+`make web-test` builds the current service and launches an isolated headless Chrome session through `npx agent-browser@0.41.2` (downloaded on first use). It creates temporary invented sources, channels and lists, disables receiver access and nightly refresh, and removes the temporary state afterward. It checks Channels, My lists, Sources and Settings at 360, 390, 768, 1024 and 1440 CSS pixels, including long Latin/Cyrillic names, empty/missing channels, touch target sizes, favorites, search, pointer/keyboard sorting and the floating send panel. Set `DREAMINATOR_WEB_SCREENSHOTS=/absolute/output/path` to retain rendered phone, tablet and desktop screenshots. Normal `make test` skips the browser check; CI's fast Node tests need no browser or npm download.
 
 The Vu+ target uses `GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0`. Its static executable has no dependency on the image's libc or an ARM cross-compiler. The IPK declares `Architecture: vuuno4kse`, the receiver's machine architecture, so normal `opkg` architecture checks distinguish it from a DM520 package. The packager checks ELF class, byte order, CPU and static linking before creating either package. `Architecture: all` remains the legacy DM520 label for compatibility; it is not a universal executable.
 
