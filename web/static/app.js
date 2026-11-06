@@ -47,6 +47,7 @@ const ICONS = {
   send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
   pulse: '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>',
   upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  more: '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
 };
 
 function icon(name) {
@@ -85,7 +86,7 @@ const store = {
 
 // ---------------------------------------------------------------- api
 
-async function request(method, path, body) {
+async function sendRequest(method, path, body) {
   const res = await fetch(path, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : {},
@@ -101,6 +102,21 @@ async function request(method, path, body) {
     throw err;
   }
   return data;
+}
+
+let bouquetWrites = Promise.resolve();
+function queueBouquetWrite(write) {
+  const saved = bouquetWrites.then(write);
+  bouquetWrites = saved.catch(() => {});
+  return saved;
+}
+
+function request(method, path, body) {
+  // Send to TV must include all earlier membership and order edits.
+  if (method !== 'GET' && (path === '/api/apply' || path === '/api/bouquet-order' || path === '/api/bouquets' || path.startsWith('/api/bouquets/'))) {
+    return queueBouquetWrite(() => sendRequest(method, path, body));
+  }
+  return sendRequest(method, path, body);
 }
 // Multipart upload: text fields first, the file last (the receiver streams
 // the file straight to disk once it reaches it).
@@ -119,12 +135,24 @@ const api = {
   post: (p, b) => request('POST', p, b || {}),
   put: (p, b) => request('PUT', p, b),
   del: (p) => request('DELETE', p),
+  reorderBouquet: (id, ids) => queueBouquetWrite(async () => {
+    const state = await sendRequest('GET', '/api/state');
+    const bouquet = state.bouquets.find(b => b.id === id);
+    if (!bouquet) throw new Error('Список не найден');
+    const positions = new Map(ids.map((key, index) => [key, index]));
+    const rank = c => positions.get(`${c.source}/${c.id}`) ?? ids.length;
+    // Reorder current membership so stale rows cannot undo removals or additions.
+    const channels = bouquet.channels.map(refOf).sort((a, b) => rank(a) - rank(b));
+    return sendRequest('PUT', `/api/bouquets/${id}`, { channels });
+  }),
 };
 
 // ---------------------------------------------------------------- state
 
 let S = null;          // server state
 let dragging = false;
+// Keep optimistic row order visible until the queued saves finish.
+const sortingLists = new Set();
 let modalOpen = false;
 const ui = { target: store.get('target'), q: '' };
 
@@ -144,10 +172,10 @@ async function refreshState(rerender = true) {
   const changed = JSON.stringify(next) !== JSON.stringify(S);
   S = next;
   renderChrome();
-  if (!changed || !rerender || dragging || modalOpen) return;
+  if (!changed || !rerender || dragging || modalOpen || [...sortingLists].some((list) => list.isConnected)) return;
   const [tab, sub] = route();
   if (tab === 'lists' && sub === 'receiver') return;
-  if (tab === 'sources' || tab === 'lists') render();
+  if (tab === 'sources' || tab === 'lists') await render();
   else if (tab === 'channels' && wasBusy && !busy()) render();
   else if (tab === 'settings') {
     const card = $('#epg-card'); if (card) card.replaceWith(epgCard());
@@ -223,14 +251,27 @@ async function applyNow(btn) {
 }
 
 function openModal(title, body, actions, onClose) {
+  const previousFocus = document.activeElement;
   modalOpen = true;
   const close = () => {
     overlay.remove();
     modalOpen = false;
     document.removeEventListener('keydown', onKey);
+    if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
     if (onClose) onClose();
   };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const onKey = (e) => {
+    if (e.key === 'Escape') close();
+    if (e.key !== 'Tab') return;
+    const controls = [...overlay.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+      .filter((el) => !el.disabled && el.getClientRects().length);
+    const first = controls[0], last = controls[controls.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) {
+      e.preventDefault(); last?.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) {
+      e.preventDefault(); first?.focus();
+    }
+  };
   const overlay = h('div', { class: 'modal-overlay', onclick: (e) => { if (e.target === overlay) close(); } },
     h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'modal-head' }, h('h2', {}, title),
@@ -239,6 +280,7 @@ function openModal(title, body, actions, onClose) {
       actions && h('div', { class: 'modal-actions' }, actions)));
   document.addEventListener('keydown', onKey);
   document.body.append(overlay);
+  overlay.querySelector('button')?.focus();
   return close;
 }
 
@@ -268,10 +310,42 @@ function promptDialog(title, label, value = '', okText = 'Сохранить') {
 
 // Pointer-based drag & drop that works with fingers: grab the ⋮⋮ handle.
 function makeSortable(list, onDone) {
+  let pending = 0;
+  const saveOrder = async (ids, handle) => {
+    pending++;
+    sortingLists.add(list);
+    let restoreFocus = false;
+    try { await onDone(ids); } catch (e) { fail(e); }
+    finally {
+      restoreFocus = !!handle && (document.activeElement === handle || (!list.isConnected && document.activeElement === document.body));
+      if (--pending === 0) {
+        sortingLists.delete(list);
+        if (list.isConnected && !dragging && !modalOpen) await render();
+      }
+    }
+    return restoreFocus;
+  };
+  list.addEventListener('keydown', async (e) => {
+    const handle = e.target.closest('.grip');
+    const item = handle && handle.closest('.sortable-item');
+    if (!item || item.parentElement !== list || !['ArrowUp', 'ArrowDown'].includes(e.key)) return;
+    closeChannelMenu();
+    e.preventDefault();
+    const sibling = e.key === 'ArrowUp' ? item.previousElementSibling : item.nextElementSibling;
+    if (!sibling) return;
+    list.insertBefore(item, e.key === 'ArrowUp' ? sibling : sibling.nextElementSibling);
+    handle.focus({ preventScroll: true });
+    const path = location.hash;
+    const restoreFocus = await saveOrder([...list.children].map((el) => el.dataset.id), handle);
+    if (!restoreFocus || location.hash !== path) return;
+    const moved = [...document.querySelectorAll('.sortable-item')].find((el) => el.dataset.id === item.dataset.id);
+    moved?.querySelector('.grip')?.focus();
+  });
   list.addEventListener('pointerdown', (e) => {
     const handle = e.target.closest('.grip');
     const item = handle && handle.closest('.sortable-item');
     if (!item || item.parentElement !== list) return;
+    closeChannelMenu();
     e.preventDefault();
     dragging = true;
     const before = [...list.children].map((el) => el.dataset.id).join('|');
@@ -304,7 +378,7 @@ function makeSortable(list, onDone) {
       item.style.transform = '';
       dragging = false;
       const ids = [...list.children].map((el) => el.dataset.id);
-      if (ids.join('|') !== before) onDone(ids);
+      if (ids.join('|') !== before) saveOrder(ids);
     };
     handle.addEventListener('pointermove', move);
     handle.addEventListener('pointerup', up);
@@ -312,7 +386,7 @@ function makeSortable(list, onDone) {
   });
 }
 
-const grip = () => h('span', { class: 'icon-btn grip', 'aria-label': 'Перетащить' }, icon('grip'));
+const grip = () => h('button', { type: 'button', class: 'icon-btn grip', 'aria-label': 'Изменить порядок', title: 'Перетащите или используйте стрелки вверх и вниз' }, icon('grip'));
 
 function logo(ch) {
   const initials = (ch.name || '?').replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter(Boolean)
@@ -340,7 +414,12 @@ let renderToken = 0;
 async function render() {
   const token = ++renderToken;
   const [tab, ...rest] = route();
-  document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
+  document.querySelectorAll('.nav a').forEach((a) => {
+    const active = a.dataset.tab === tab;
+    a.classList.toggle('active', active);
+    if (active) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
   let el;
   try {
     switch (tab) {
@@ -490,7 +569,8 @@ function starButton(ch) {
   const paint = () => {
     const on = inBouquet(targetBouquet(), ch);
     btn.classList.toggle('on', on);
-    btn.setAttribute('aria-label', on ? 'Убрать из списка' : 'Добавить в список');
+    btn.setAttribute('aria-label', `${on ? 'Убрать из списка' : 'Добавить в список'}: ${ch.name}`);
+    btn.setAttribute('aria-pressed', String(on));
     btn.replaceChildren(icon(on ? 'starFill' : 'star'));
   };
   btn.addEventListener('click', async () => {
@@ -511,15 +591,54 @@ function starButton(ch) {
 }
 
 function channelRow(ch, sub) {
-  return h('div', { class: 'row' },
+  return h('div', { class: 'row channel-row' },
     logo(ch),
     h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, ch.name), sub && h('div', { class: 'row-sub' }, sub)),
-    h('button', { class: 'btn btn-sm btn-ghost', onclick: () => zap(ch), 'aria-label': `Включить ${ch.name} на телевизоре` }, icon('play'), 'На ТВ'),
-    probeButton(ch),
-    starButton(ch));
+    channelActions(ch));
 }
 
-const probeButton = (ch) => h('button', { class: 'icon-btn', title: 'Проверить поток', 'aria-label': `Проверить поток ${ch.name}`, onclick: () => probeDialog(ch) }, icon('pulse'));
+const hasChannelPopovers = 'showPopover' in HTMLElement.prototype;
+const channelPhone = matchMedia('(max-width: 640px)');
+let channelMenuID = 0;
+
+function closeChannelMenu() {
+  if (hasChannelPopovers) $('.channel-secondary:popover-open')?.hidePopover();
+}
+
+function channelActions(ch, remove) {
+  const compact = hasChannelPopovers && channelPhone.matches;
+  const fullLabel = (text) => h('span', { class: 'channel-action-full' }, text);
+  const menu = h('div', { class: 'channel-secondary',
+    popover: compact ? 'auto' : null, id: compact ? `channel-menu-${++channelMenuID}` : null,
+    role: compact ? 'group' : null, 'aria-label': compact ? `Действия: ${ch.name}` : null },
+    !ch.missing && h('button', { class: 'btn btn-sm btn-ghost', onclick: () => zap(ch), 'aria-label': `Включить ${ch.name} на телевизоре` },
+      icon('play'), h('span', { class: 'channel-action-short' }, 'На ТВ'), fullLabel('Включить на ТВ')),
+    !ch.missing && h('button', { class: 'icon-btn', title: 'Проверить поток', 'aria-label': `Проверить поток ${ch.name}`, onclick: () => probeDialog(ch) },
+      icon('pulse'), fullLabel('Проверить поток')),
+    remove && h('button', { class: 'icon-btn danger', 'aria-label': `Убрать ${ch.name}`, onclick: remove }, icon('x'), fullLabel('Убрать из списка')));
+  const more = compact && h('button', { class: 'icon-btn channel-menu-toggle', type: 'button',
+    popovertarget: menu.id, 'aria-label': `Действия: ${ch.name}`, 'aria-expanded': 'false', onclick: (e) => {
+      e.preventDefault();
+      if (menu.matches(':popover-open')) { menu.hidePopover(); return; }
+      menu.showPopover();
+      const rect = more.getBoundingClientRect();
+      const ceiling = $('.topbar').getBoundingClientRect().bottom + 8;
+      const floor = Math.min(innerHeight, $('.nav').getBoundingClientRect().top,
+        $('#applybar').childElementCount ? $('#applybar').getBoundingClientRect().top : innerHeight);
+      menu.style.maxHeight = `${Math.max(48, floor - ceiling - 8)}px`;
+      menu.style.left = `${Math.max(12, Math.min(rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 12))}px`;
+      menu.style.top = `${Math.max(ceiling, Math.min(rect.bottom + 4, floor - menu.offsetHeight - 8))}px`;
+      menu.querySelector('button')?.focus({ preventScroll: true });
+    } }, icon('more'));
+  if (compact) {
+    menu.addEventListener('beforetoggle', (e) => {
+      if (e.newState === 'closed' && menu.contains(document.activeElement)) more.focus({ preventScroll: true });
+    });
+    menu.addEventListener('toggle', () => more.setAttribute('aria-expanded', String(menu.matches(':popover-open'))));
+    menu.addEventListener('click', (e) => { if (e.target.closest('button')) menu.hidePopover(); }, true);
+  }
+  return h('div', { class: 'row-actions' }, menu, !remove && starButton(ch), more);
+}
 
 async function probeDialog(ch) {
   const body = h('div', {},
@@ -602,7 +721,7 @@ async function viewBouquets() {
   }));
   makeSortable(list, async (ids) => {
     try { await api.put('/api/bouquet-order', { ids }); } catch (e) { fail(e); }
-    refreshState().catch(() => {});
+    await refreshState().catch(() => {});
   });
   const create = async () => { const b = await createBouquetFlow(); if (b) go('lists', b.id); };
   return h('section', {},
@@ -627,19 +746,15 @@ function viewBouquet(id) {
 
   const key = (c) => `${c.source}/${c.id}`;
   const list = h('div', { class: 'list' }, b.channels.map((c) =>
-    h('div', { class: `row sortable-item ${c.missing ? 'missing' : ''}`, 'data-id': key(c) },
+    h('div', { class: `row channel-row sortable-item ${c.missing ? 'missing' : ''}`, 'data-id': key(c) },
       grip(),
       logo(c),
       h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, c.name),
         c.missing && h('div', { class: 'row-sub' }, 'Нет в плейлисте — на ТВ не попадёт')),
-      !c.missing && h('button', { class: 'icon-btn', 'aria-label': `Включить ${c.name} на телевизоре`, onclick: () => zap(c) }, icon('play')),
-      !c.missing && probeButton(c),
-      h('button', { class: 'icon-btn danger', 'aria-label': `Убрать ${c.name}`, onclick: () => removeChannel(c) }, icon('x')))));
+      channelActions(c, () => removeChannel(c)))));
   makeSortable(list, async (ids) => {
-    const byKey = new Map(b.channels.map((c) => [key(c), c]));
-    const channels = ids.map((k) => byKey.get(k)).filter(Boolean).map((c) => ({ source: c.source, id: c.id, name: c.name }));
-    try { await api.put(`/api/bouquets/${b.id}`, { channels }); } catch (e) { fail(e); }
-    refreshState().catch(() => {});
+    try { await api.reorderBouquet(b.id, ids); } catch (e) { fail(e); }
+    await refreshState().catch(() => {});
   });
 
   return h('section', {},
@@ -1380,9 +1495,23 @@ async function viewTMDBMatch() {
 
 // ---------------------------------------------------------------- boot
 
+document.documentElement.classList.toggle('channel-popovers', hasChannelPopovers);
+window.addEventListener('scroll', closeChannelMenu, { passive: true });
+window.addEventListener('resize', closeChannelMenu);
+channelPhone.addEventListener('change', () => {
+  closeChannelMenu();
+  const [tab, sub] = route();
+  if (S && hasChannelPopovers && (tab === 'channels' || (tab === 'lists' && sub && sub !== 'receiver'))) render();
+});
+
+// Reserve the actual panel height, including wrapped copy and safe-area padding.
+new ResizeObserver(() => {
+  document.documentElement.style.setProperty('--apply-h', `${$('#applybar').getBoundingClientRect().height}px`);
+}).observe($('#applybar'));
+
 for (const a of document.querySelectorAll('.nav a')) a.prepend(icon(a.dataset.icon));
 // A stale search would hide the group or playlist the user just opened.
-window.addEventListener('hashchange', () => { ui.q = ''; window.scrollTo(0, 0); render(); });
+window.addEventListener('hashchange', () => { closeChannelMenu(); ui.q = ''; window.scrollTo(0, 0); render(); });
 
 (async function boot() {
   try {
