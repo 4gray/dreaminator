@@ -292,6 +292,7 @@ function makeSortable(list, onDone) {
     const sibling = e.key === 'ArrowUp' ? item.previousElementSibling : item.nextElementSibling;
     if (!sibling) return;
     list.insertBefore(item, e.key === 'ArrowUp' ? sibling : sibling.nextElementSibling);
+    handle.focus({ preventScroll: true });
     await onDone([...list.children].map((el) => el.dataset.id));
     const moved = [...document.querySelectorAll('.sortable-item')].find((el) => el.dataset.id === item.dataset.id);
     moved?.querySelector('.grip')?.focus();

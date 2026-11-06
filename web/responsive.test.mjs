@@ -209,6 +209,20 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   await browser('wait', '--fn', `document.querySelector('.sortable-item').dataset.id === ${JSON.stringify(before[0])}`);
   await browser('wait', '--fn', 'document.activeElement.matches(".row:nth-child(2) .grip")');
   assert.equal((await (await fetch(`${base}/api/state`)).json()).bouquets[0].channels[0].id, before[0].split('/')[1], 'keyboard order persisted');
+  await evaluate(`(() => {
+    window.originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      if (args[0] === '/api/bouquets/demo-favorites' && args[1]?.method === 'PUT') await new Promise(r => setTimeout(r, 1500));
+      return window.originalFetch(...args);
+    };
+  })()`);
+  await browser('focus', '.row:first-child .grip');
+  await browser('press', 'ArrowDown');
+  assert.equal(await evaluate('document.activeElement.matches(".grip")'), true, 'handle retains focus while save is pending');
+  await browser('press', 'ArrowDown');
+  await browser('wait', '--fn', `fetch('/api/state').then(r=>r.json()).then(s=>s.bouquets[0].channels[2].id === ${JSON.stringify(before[0].split('/')[1])})`);
+  await browser('wait', '--fn', 'document.activeElement.matches(".row:nth-child(3) .grip")');
+  await evaluate('window.fetch = window.originalFetch; delete window.originalFetch');
   await menuOpen();
   await browser('click', '.channel-secondary:popover-open .danger');
   await browser('wait', '--fn', `document.querySelectorAll('.list > .row').length === ${refs.length - 1}`);

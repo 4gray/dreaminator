@@ -18,7 +18,7 @@ The compact layout applies only through 640 CSS pixels. Tablet and desktop keep 
 ## Verification
 
 - `make test`, `make plugin-unit`, `make ipk ipk-vuuno4kse`, `python3 tools/check_packages.py`.
-- `make web-test`: real Go service and isolated Chromium; Channels, My lists, Sources, Settings, empty lists and missing channels at all five widths. Checks density, geometry, touch target sizes, favorites, search, menu placement and dismissal, menu-to-dialog focus, playback/probe error handling, saved pointer/keyboard order, breakpoint changes and access to the final action above the send panel.
+- `make web-test`: real Go service and isolated Chromium; Channels, My lists, Sources, Settings, empty lists and missing channels at all five widths. Checks density, geometry, touch target sizes, favorites, search, menu placement and dismissal, menu-to-dialog focus, playback/probe error handling, saved pointer/keyboard order (including repeated arrows during delayed saves), breakpoint changes and access to the final action above the send panel.
 - The regression failed against the original interface with `title only 6px at 360px` before the layout fix.
 - Synthesized Chromium touch input also verified menu tap/outside dismissal, Escape focus restoration, persisted dragging from an open menu, page scrolling outside the handle, and cancellation of a drag.
 - Impeccable's source detector reported no findings for the changed UI files. Light and dark views were inspected visually.
