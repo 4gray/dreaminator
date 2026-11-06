@@ -126,6 +126,9 @@ const api = {
 
 let S = null;          // server state
 let dragging = false;
+let orderQueue = Promise.resolve();
+// Keep optimistic row order visible until the queued saves finish.
+const sortingLists = new Set();
 let modalOpen = false;
 const ui = { target: store.get('target'), q: '' };
 
@@ -145,7 +148,7 @@ async function refreshState(rerender = true) {
   const changed = JSON.stringify(next) !== JSON.stringify(S);
   S = next;
   renderChrome();
-  if (!changed || !rerender || dragging || modalOpen) return;
+  if (!changed || !rerender || dragging || modalOpen || [...sortingLists].some((list) => list.isConnected)) return;
   const [tab, sub] = route();
   if (tab === 'lists' && sub === 'receiver') return;
   if (tab === 'sources' || tab === 'lists') await render();
@@ -283,6 +286,23 @@ function promptDialog(title, label, value = '', okText = 'Сохранить') {
 
 // Pointer-based drag & drop that works with fingers: grab the ⋮⋮ handle.
 function makeSortable(list, onDone) {
+  let pending = 0;
+  const saveOrder = async (ids, handle) => {
+    pending++;
+    sortingLists.add(list);
+    const saved = orderQueue.then(() => onDone(ids));
+    orderQueue = saved.catch(() => {});
+    let restoreFocus = false;
+    try { await saved; } catch (e) { fail(e); }
+    finally {
+      restoreFocus = !!handle && (document.activeElement === handle || (!list.isConnected && document.activeElement === document.body));
+      if (--pending === 0) {
+        sortingLists.delete(list);
+        if (list.isConnected && !dragging && !modalOpen) await render();
+      }
+    }
+    return restoreFocus;
+  };
   list.addEventListener('keydown', async (e) => {
     const handle = e.target.closest('.grip');
     const item = handle && handle.closest('.sortable-item');
@@ -293,7 +313,9 @@ function makeSortable(list, onDone) {
     if (!sibling) return;
     list.insertBefore(item, e.key === 'ArrowUp' ? sibling : sibling.nextElementSibling);
     handle.focus({ preventScroll: true });
-    await onDone([...list.children].map((el) => el.dataset.id));
+    const path = location.hash;
+    const restoreFocus = await saveOrder([...list.children].map((el) => el.dataset.id), handle);
+    if (!restoreFocus || location.hash !== path) return;
     const moved = [...document.querySelectorAll('.sortable-item')].find((el) => el.dataset.id === item.dataset.id);
     moved?.querySelector('.grip')?.focus();
   });
@@ -334,7 +356,7 @@ function makeSortable(list, onDone) {
       item.style.transform = '';
       dragging = false;
       const ids = [...list.children].map((el) => el.dataset.id);
-      if (ids.join('|') !== before) onDone(ids);
+      if (ids.join('|') !== before) saveOrder(ids);
     };
     handle.addEventListener('pointermove', move);
     handle.addEventListener('pointerup', up);
