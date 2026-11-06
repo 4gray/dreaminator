@@ -105,12 +105,16 @@ async function sendRequest(method, path, body) {
 }
 
 let bouquetWrites = Promise.resolve();
+function queueBouquetWrite(write) {
+  const saved = bouquetWrites.then(write);
+  bouquetWrites = saved.catch(() => {});
+  return saved;
+}
+
 function request(method, path, body) {
-  // Membership edits must follow any earlier full-list reorder snapshots.
-  if (method !== 'GET' && (path === '/api/bouquet-order' || path === '/api/bouquets' || path.startsWith('/api/bouquets/'))) {
-    const saved = bouquetWrites.then(() => sendRequest(method, path, body));
-    bouquetWrites = saved.catch(() => {});
-    return saved;
+  // Send to TV must include all earlier membership and order edits.
+  if (method !== 'GET' && (path === '/api/apply' || path === '/api/bouquet-order' || path === '/api/bouquets' || path.startsWith('/api/bouquets/'))) {
+    return queueBouquetWrite(() => sendRequest(method, path, body));
   }
   return sendRequest(method, path, body);
 }
@@ -131,6 +135,16 @@ const api = {
   post: (p, b) => request('POST', p, b || {}),
   put: (p, b) => request('PUT', p, b),
   del: (p) => request('DELETE', p),
+  reorderBouquet: (id, ids) => queueBouquetWrite(async () => {
+    const state = await sendRequest('GET', '/api/state');
+    const bouquet = state.bouquets.find(b => b.id === id);
+    if (!bouquet) throw new Error('Список не найден');
+    const positions = new Map(ids.map((key, index) => [key, index]));
+    const rank = c => positions.get(`${c.source}/${c.id}`) ?? ids.length;
+    // Reorder current membership so stale rows cannot undo removals or additions.
+    const channels = bouquet.channels.map(refOf).sort((a, b) => rank(a) - rank(b));
+    return sendRequest('PUT', `/api/bouquets/${id}`, { channels });
+  }),
 };
 
 // ---------------------------------------------------------------- state
@@ -739,9 +753,7 @@ function viewBouquet(id) {
         c.missing && h('div', { class: 'row-sub' }, 'Нет в плейлисте — на ТВ не попадёт')),
       channelActions(c, () => removeChannel(c)))));
   makeSortable(list, async (ids) => {
-    const byKey = new Map(b.channels.map((c) => [key(c), c]));
-    const channels = ids.map((k) => byKey.get(k)).filter(Boolean).map((c) => ({ source: c.source, id: c.id, name: c.name }));
-    try { await api.put(`/api/bouquets/${b.id}`, { channels }); } catch (e) { fail(e); }
+    try { await api.reorderBouquet(b.id, ids); } catch (e) { fail(e); }
     await refreshState().catch(() => {});
   });
 

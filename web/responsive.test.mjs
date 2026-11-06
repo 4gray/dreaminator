@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -267,6 +267,19 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   assert.equal(await evaluate('document.querySelectorAll(".receiver-editor .row").length'), 2, 'receiver draft stays valid while playlist saves are pending');
   assert.equal((await (await fetch(`${base}/api/receiver-bouquets/${nativeID}`)).json()).channels.length, 3, 'receiver fixture was not saved');
   await open('lists/demo-favorites', '.channel-row');
+  await delayOrders(5000);
+  await browser('focus', '.row:first-child .grip');
+  await browser('press', 'ArrowDown');
+  const removedBeforeReorder = await evaluate('document.querySelector(".row:nth-child(4)").dataset.id.split("/")[1]');
+  await menuOpen('.row:nth-child(4)');
+  await browser('click', '.channel-secondary:popover-open .danger');
+  await browser('focus', '.row:first-child .grip');
+  await browser('press', 'ArrowDown');
+  await browser('wait', '--fn', 'window.orderSaves.length === 2');
+  await evaluate('Promise.all(window.orderSaves)');
+  await browser('wait', '--fn', `document.querySelectorAll('.channel-row').length === ${refs.length - 2}`);
+  assert.equal((await (await fetch(`${base}/api/state`)).json()).bouquets.find(b => b.id === 'demo-favorites').channels.some(c => c.id === removedBeforeReorder), false, 'reordering after a queued removal cannot reinsert it');
+  await restoreFetch();
   await layout(390, true);
   await browser('scroll', 'down', '5000');
   assert.equal(await evaluate('document.querySelector("#view .actions:last-child").getBoundingClientRect().bottom <= document.querySelector("#applybar").getBoundingClientRect().top'), true, 'save panel covers the final action');
@@ -293,4 +306,19 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   await browser('press', 'ArrowDown');
   await browser('wait', '--fn', 'document.querySelector(".list-card").dataset.id === "demo-empty" && document.activeElement.matches(".list-card:nth-child(2) .grip")');
   assert.equal((await (await fetch(`${base}/api/state`)).json()).bouquets[0].id, 'demo-empty');
+
+  await open('lists/demo-favorites', '.channel-row');
+  await delayOrders(5000);
+  await browser('focus', '.row:first-child .grip');
+  await browser('press', 'ArrowDown');
+  await browser('press', 'ArrowDown');
+  const sentNames = await evaluate('[...document.querySelectorAll(".row-title")].map(e => e.textContent)');
+  await browser('click', '#applybar button');
+  await browser('wait', '--fn', 'fetch("/api/state").then(r=>r.json()).then(s=>!s.dirty)');
+  await browser('wait', '--fn', 'window.orderSaves.length === 2');
+  await evaluate('Promise.all(window.orderSaves)');
+  const applied = await readFile(join(dir, 'enigma2/userbouquet.dreaminator_demofavorites.tv'), 'utf8');
+  assert.deepEqual([...applied.matchAll(/^#DESCRIPTION (.*)$/gm)].map(m => m[1]), sentNames, 'Send to TV includes all earlier queued reorders');
+  assert.equal((await (await fetch(`${base}/api/state`)).json()).dirty, false);
+  await restoreFetch();
 });
