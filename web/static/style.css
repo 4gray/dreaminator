@@ -402,6 +402,9 @@ main {
 .row .btn-sm { flex: none; }
 
 .row-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.channel-secondary { display: contents; }
+.channel-action-full { display: none; }
+.channel-secondary[popover]:not(:popover-open) { display: none; }
 .channel-row .row-title, .channel-row .row-sub, .list-card .row-title {
   white-space: normal;
   overflow-wrap: anywhere;
@@ -419,6 +422,37 @@ main {
   .channel-row.sortable-item > .logo { grid-column: 2; }
   .channel-row.sortable-item > .row-main { grid-column: 3; }
   .channel-row.sortable-item > .row-actions { grid-column: 2 / -1; }
+
+  .channel-popovers .channel-row { display: flex; gap: 8px; padding: 8px; }
+  .channel-popovers .channel-row > .logo { display: none; }
+  .channel-popovers .channel-row > .grip { align-self: center; height: 48px; }
+  .channel-secondary:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: 260px;
+    max-width: calc(100vw - 24px);
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+  }
+  .channel-secondary:popover-open > button {
+    display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+    width: 100%; height: auto; min-height: 48px; padding: 10px 12px;
+    border: 0; background: transparent; color: var(--text);
+    font: inherit; font-size: 16px; font-weight: 500; text-align: left; white-space: normal;
+  }
+  .channel-secondary:popover-open > .danger { color: var(--danger); }
+  .channel-secondary:popover-open > button:hover { background: var(--surface-2); }
+  .channel-secondary:popover-open .channel-action-full { display: inline; }
+  .channel-secondary:popover-open .channel-action-short { display: none; }
 }
 
 .logo {

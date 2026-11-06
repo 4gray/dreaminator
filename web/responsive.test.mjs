@@ -85,6 +85,12 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
     await mkdir(output, { recursive: true });
     await browser('screenshot', join(output, `${name}.png`));
   };
+  const menuOpen = async (row = '.row:first-child') => {
+    await browser('click', `${row} .channel-menu-toggle`);
+    await browser('wait', '.channel-secondary:popover-open');
+    assert.equal(await evaluate('document.querySelector(".channel-menu-toggle[aria-expanded=true]") !== null'), true);
+  };
+  const menuClosed = async () => browser('wait', '--fn', '!document.querySelector(".channel-secondary:popover-open")');
   const layout = async (width, channelRows = false) => {
     const metrics = await evaluate(`(() => {
       const box = e => { const r = e.getBoundingClientRect(); return { x:r.x, y:r.y, right:r.right, bottom:r.bottom, width:r.width, height:r.height }; };
@@ -92,7 +98,7 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
         overflow: document.documentElement.scrollWidth > innerWidth,
         rows: [...document.querySelectorAll('.list > .row')].map(row => ({
           title: box(row.querySelector('.row-title')),
-          controls: [...row.querySelectorAll('button, .grip')].map(box)
+          controls: [...row.querySelectorAll('button, .grip')].filter(e => e.getClientRects().length).map(box)
         }))
       };
     })()`);
@@ -113,7 +119,37 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
     await browser('set', 'viewport', String(width), width < 600 ? '844' : '1024');
     await open('lists/demo-favorites', '.list > .row');
     await layout(width, true);
+    const presentation = await evaluate(`(() => {
+      const visible = e => !!e.getClientRects().length;
+      const rows = [...document.querySelectorAll('.channel-row')];
+      return {
+        logos: [...document.querySelectorAll('.channel-row > .logo')].filter(visible).length,
+        menus: [...document.querySelectorAll('.channel-menu-toggle')].filter(visible).length,
+        inline: [...rows[0].querySelectorAll('.row-actions button')].filter(visible).length,
+        fullyVisible: rows.filter(e => e.getBoundingClientRect().bottom <= document.querySelector('.nav').getBoundingClientRect().top).length
+      };
+    })()`);
+    if (width <= 640) {
+      assert.equal(presentation.logos, 0, 'phone logos consume name space');
+      assert.equal(presentation.menus, refs.length);
+      assert.ok(presentation.fullyVisible >= 7, 'phone should show at least seven fixture channels');
+      await menuOpen('.row:last-child');
+      assert.equal(await evaluate(`(() => {const r=document.querySelector('.channel-secondary:popover-open').getBoundingClientRect();return r.x>=0 && r.right<=innerWidth && r.y>=document.querySelector('.topbar').getBoundingClientRect().bottom && r.bottom<=document.querySelector('.nav').getBoundingClientRect().top;})()`), true, 'last-row menu stays within usable viewport');
+      await browser('press', 'Escape');
+      await menuClosed();
+      assert.equal(await evaluate('document.activeElement.matches(".row:last-child .channel-menu-toggle")'), true, 'Escape restores menu trigger focus');
+    } else {
+      assert.equal(presentation.logos, refs.length, 'tablet/desktop logos retained');
+      assert.equal(presentation.menus, 0, 'tablet/desktop actions stay inline');
+      assert.equal(presentation.inline, 3);
+    }
     if ([390, 768, 1440].includes(width)) await screenshot(`favorites-${width}`);
+    if (width === 390) {
+      await menuOpen('.row:nth-child(2)');
+      await screenshot('favorites-menu-390');
+      await browser('click', '.view-head h1');
+      await menuClosed();
+    }
     await open('channels/demo-source/Открытия%20и%20истории', '.list > .row');
     await layout(width, true);
     if (width === 390) await screenshot('channels-390');
@@ -126,6 +162,11 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   }
 
   await browser('set', 'viewport', '390', '844');
+  await open('lists/demo-missing', '.missing');
+  await menuOpen();
+  assert.deepEqual(await evaluate('[...document.querySelector(".channel-secondary:popover-open").querySelectorAll("button")].map(e=>e.textContent)'), ['Убрать из списка']);
+  await browser('press', 'Escape');
+  await menuClosed();
   await open('channels/demo-source/Открытия%20и%20истории', '.list > .row');
   await browser('click', '.row:first-child .star');
   await browser('wait', '.row:first-child .star:not(.on)');
@@ -135,9 +176,23 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   await browser('fill', 'input[type=search]', 'Amber');
   await browser('wait', '--fn', 'document.querySelectorAll(".list > .row").length === 1');
   await layout(390, true);
-  await browser('click', '.row-actions button[title="Проверить поток"]');
+  await menuOpen();
+  assert.equal(await evaluate('document.activeElement.textContent'), 'На ТВВключить на ТВ');
+  await browser('press', 'Tab');
+  assert.equal(await evaluate('document.activeElement.title'), 'Проверить поток');
+  await browser('click', '.channel-secondary:popover-open button[title="Проверить поток"]');
   await browser('wait', '.modal .form-error');
-  await browser('click', '.modal-head button');
+  await menuClosed();
+  assert.equal(await evaluate('document.activeElement.closest(".modal") !== null'), true, 'probe dialog receives focus');
+  await browser('press', 'Shift+Tab');
+  assert.equal(await evaluate('document.activeElement.closest(".modal") !== null'), true, 'dialog keeps keyboard focus');
+  await browser('press', 'Escape');
+  assert.equal(await evaluate('document.activeElement.matches(".channel-menu-toggle")'), true);
+
+  await menuOpen();
+  await browser('click', '.channel-secondary:popover-open button:first-child');
+  await menuClosed();
+  await browser('wait', '.toast.show.error');
 
   await open('lists/demo-favorites', '.list > .row');
   const before = await evaluate('[...document.querySelectorAll(".sortable-item")].map(e => e.dataset.id)');
@@ -154,7 +209,8 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   await browser('wait', '--fn', `document.querySelector('.sortable-item').dataset.id === ${JSON.stringify(before[0])}`);
   await browser('wait', '--fn', 'document.activeElement.matches(".row:nth-child(2) .grip")');
   assert.equal((await (await fetch(`${base}/api/state`)).json()).bouquets[0].channels[0].id, before[0].split('/')[1], 'keyboard order persisted');
-  await browser('click', '.row:first-child .danger');
+  await menuOpen();
+  await browser('click', '.channel-secondary:popover-open .danger');
   await browser('wait', '--fn', `document.querySelectorAll('.list > .row').length === ${refs.length - 1}`);
   assert.equal((await (await fetch(`${base}/api/state`)).json()).bouquets[0].channels.length, refs.length - 1);
   await layout(390, true);
@@ -164,7 +220,21 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   await browser('scroll', 'up', '5000');
   await layout(390, true);
   await screenshot('favorites-390-dark');
+  await menuOpen();
+  await screenshot('favorites-menu-390-dark');
+  await browser('scroll', 'down', '100');
+  await menuClosed();
+  await browser('scroll', 'up', '5000');
+  await menuOpen();
+  await browser('set', 'viewport', '768', '1024');
+  await menuClosed();
+  await browser('wait', '--fn', '!document.querySelector(".channel-menu-toggle") && document.querySelector(".channel-secondary").getAttribute("popover") === null');
+  await layout(768, true);
+  await browser('set', 'viewport', '390', '844');
+  await browser('wait', '.channel-menu-toggle');
+  await menuOpen();
   await open('lists', '.list-card');
+  await menuClosed();
   await browser('focus', '.list-card:first-child .grip');
   await browser('press', 'ArrowDown');
   await browser('wait', '--fn', 'document.querySelector(".list-card").dataset.id === "demo-empty" && document.activeElement.matches(".list-card:nth-child(2) .grip")');

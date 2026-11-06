@@ -47,6 +47,7 @@ const ICONS = {
   send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
   pulse: '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>',
   upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  more: '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
 };
 
 function icon(name) {
@@ -223,14 +224,27 @@ async function applyNow(btn) {
 }
 
 function openModal(title, body, actions, onClose) {
+  const previousFocus = document.activeElement;
   modalOpen = true;
   const close = () => {
     overlay.remove();
     modalOpen = false;
     document.removeEventListener('keydown', onKey);
+    if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
     if (onClose) onClose();
   };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const onKey = (e) => {
+    if (e.key === 'Escape') close();
+    if (e.key !== 'Tab') return;
+    const controls = [...overlay.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+      .filter((el) => !el.disabled && el.getClientRects().length);
+    const first = controls[0], last = controls[controls.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) {
+      e.preventDefault(); last?.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) {
+      e.preventDefault(); first?.focus();
+    }
+  };
   const overlay = h('div', { class: 'modal-overlay', onclick: (e) => { if (e.target === overlay) close(); } },
     h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'modal-head' }, h('h2', {}, title),
@@ -239,6 +253,7 @@ function openModal(title, body, actions, onClose) {
       actions && h('div', { class: 'modal-actions' }, actions)));
   document.addEventListener('keydown', onKey);
   document.body.append(overlay);
+  overlay.querySelector('button')?.focus();
   return close;
 }
 
@@ -272,6 +287,7 @@ function makeSortable(list, onDone) {
     const handle = e.target.closest('.grip');
     const item = handle && handle.closest('.sortable-item');
     if (!item || item.parentElement !== list || !['ArrowUp', 'ArrowDown'].includes(e.key)) return;
+    closeChannelMenu();
     e.preventDefault();
     const sibling = e.key === 'ArrowUp' ? item.previousElementSibling : item.nextElementSibling;
     if (!sibling) return;
@@ -284,6 +300,7 @@ function makeSortable(list, onDone) {
     const handle = e.target.closest('.grip');
     const item = handle && handle.closest('.sortable-item');
     if (!item || item.parentElement !== list) return;
+    closeChannelMenu();
     e.preventDefault();
     dragging = true;
     const before = [...list.children].map((el) => el.dataset.id).join('|');
@@ -532,13 +549,51 @@ function channelRow(ch, sub) {
   return h('div', { class: 'row channel-row' },
     logo(ch),
     h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, ch.name), sub && h('div', { class: 'row-sub' }, sub)),
-    h('div', { class: 'row-actions' },
-      h('button', { class: 'btn btn-sm btn-ghost', onclick: () => zap(ch), 'aria-label': `Включить ${ch.name} на телевизоре` }, icon('play'), 'На ТВ'),
-      probeButton(ch),
-      starButton(ch)));
+    channelActions(ch));
 }
 
-const probeButton = (ch) => h('button', { class: 'icon-btn', title: 'Проверить поток', 'aria-label': `Проверить поток ${ch.name}`, onclick: () => probeDialog(ch) }, icon('pulse'));
+const hasChannelPopovers = 'showPopover' in HTMLElement.prototype;
+const channelPhone = matchMedia('(max-width: 640px)');
+let channelMenuID = 0;
+
+function closeChannelMenu() {
+  if (hasChannelPopovers) $('.channel-secondary:popover-open')?.hidePopover();
+}
+
+function channelActions(ch, remove) {
+  const compact = hasChannelPopovers && channelPhone.matches;
+  const fullLabel = (text) => h('span', { class: 'channel-action-full' }, text);
+  const menu = h('div', { class: 'channel-secondary',
+    popover: compact ? 'auto' : null, id: compact ? `channel-menu-${++channelMenuID}` : null,
+    role: compact ? 'group' : null, 'aria-label': compact ? `Действия: ${ch.name}` : null },
+    !ch.missing && h('button', { class: 'btn btn-sm btn-ghost', onclick: () => zap(ch), 'aria-label': `Включить ${ch.name} на телевизоре` },
+      icon('play'), h('span', { class: 'channel-action-short' }, 'На ТВ'), fullLabel('Включить на ТВ')),
+    !ch.missing && h('button', { class: 'icon-btn', title: 'Проверить поток', 'aria-label': `Проверить поток ${ch.name}`, onclick: () => probeDialog(ch) },
+      icon('pulse'), fullLabel('Проверить поток')),
+    remove && h('button', { class: 'icon-btn danger', 'aria-label': `Убрать ${ch.name}`, onclick: remove }, icon('x'), fullLabel('Убрать из списка')));
+  const more = compact && h('button', { class: 'icon-btn channel-menu-toggle', type: 'button',
+    popovertarget: menu.id, 'aria-label': `Действия: ${ch.name}`, 'aria-expanded': 'false', onclick: (e) => {
+      e.preventDefault();
+      if (menu.matches(':popover-open')) { menu.hidePopover(); return; }
+      menu.showPopover();
+      const rect = more.getBoundingClientRect();
+      const ceiling = $('.topbar').getBoundingClientRect().bottom + 8;
+      const floor = Math.min(innerHeight, $('.nav').getBoundingClientRect().top,
+        $('#applybar').childElementCount ? $('#applybar').getBoundingClientRect().top : innerHeight);
+      menu.style.maxHeight = `${Math.max(48, floor - ceiling - 8)}px`;
+      menu.style.left = `${Math.max(12, Math.min(rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 12))}px`;
+      menu.style.top = `${Math.max(ceiling, Math.min(rect.bottom + 4, floor - menu.offsetHeight - 8))}px`;
+      menu.querySelector('button')?.focus({ preventScroll: true });
+    } }, icon('more'));
+  if (compact) {
+    menu.addEventListener('beforetoggle', (e) => {
+      if (e.newState === 'closed' && menu.contains(document.activeElement)) more.focus({ preventScroll: true });
+    });
+    menu.addEventListener('toggle', () => more.setAttribute('aria-expanded', String(menu.matches(':popover-open'))));
+    menu.addEventListener('click', (e) => { if (e.target.closest('button')) menu.hidePopover(); }, true);
+  }
+  return h('div', { class: 'row-actions' }, menu, !remove && starButton(ch), more);
+}
 
 async function probeDialog(ch) {
   const body = h('div', {},
@@ -651,10 +706,7 @@ function viewBouquet(id) {
       logo(c),
       h('div', { class: 'row-main' }, h('div', { class: 'row-title' }, c.name),
         c.missing && h('div', { class: 'row-sub' }, 'Нет в плейлисте — на ТВ не попадёт')),
-      h('div', { class: 'row-actions' },
-        !c.missing && h('button', { class: 'btn btn-sm btn-ghost', 'aria-label': `Включить ${c.name} на телевизоре`, onclick: () => zap(c) }, icon('play'), 'На ТВ'),
-        !c.missing && probeButton(c),
-        h('button', { class: 'icon-btn danger', 'aria-label': `Убрать ${c.name}`, onclick: () => removeChannel(c) }, icon('x'))))));
+      channelActions(c, () => removeChannel(c)))));
   makeSortable(list, async (ids) => {
     const byKey = new Map(b.channels.map((c) => [key(c), c]));
     const channels = ids.map((k) => byKey.get(k)).filter(Boolean).map((c) => ({ source: c.source, id: c.id, name: c.name }));
@@ -1400,6 +1452,15 @@ async function viewTMDBMatch() {
 
 // ---------------------------------------------------------------- boot
 
+document.documentElement.classList.toggle('channel-popovers', hasChannelPopovers);
+window.addEventListener('scroll', closeChannelMenu, { passive: true });
+window.addEventListener('resize', closeChannelMenu);
+channelPhone.addEventListener('change', () => {
+  closeChannelMenu();
+  const [tab, sub] = route();
+  if (S && hasChannelPopovers && (tab === 'channels' || (tab === 'lists' && sub && sub !== 'receiver'))) render();
+});
+
 // Reserve the actual panel height, including wrapped copy and safe-area padding.
 new ResizeObserver(() => {
   document.documentElement.style.setProperty('--apply-h', `${$('#applybar').getBoundingClientRect().height}px`);
@@ -1407,7 +1468,7 @@ new ResizeObserver(() => {
 
 for (const a of document.querySelectorAll('.nav a')) a.prepend(icon(a.dataset.icon));
 // A stale search would hide the group or playlist the user just opened.
-window.addEventListener('hashchange', () => { ui.q = ''; window.scrollTo(0, 0); render(); });
+window.addEventListener('hashchange', () => { closeChannelMenu(); ui.q = ''; window.scrollTo(0, 0); render(); });
 
 (async function boot() {
   try {
