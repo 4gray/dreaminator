@@ -86,7 +86,7 @@ const store = {
 
 // ---------------------------------------------------------------- api
 
-async function request(method, path, body) {
+async function sendRequest(method, path, body) {
   const res = await fetch(path, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : {},
@@ -102,6 +102,17 @@ async function request(method, path, body) {
     throw err;
   }
   return data;
+}
+
+let bouquetWrites = Promise.resolve();
+function request(method, path, body) {
+  // Membership edits must follow any earlier full-list reorder snapshots.
+  if (method !== 'GET' && (path === '/api/bouquet-order' || path === '/api/bouquets' || path.startsWith('/api/bouquets/'))) {
+    const saved = bouquetWrites.then(() => sendRequest(method, path, body));
+    bouquetWrites = saved.catch(() => {});
+    return saved;
+  }
+  return sendRequest(method, path, body);
 }
 // Multipart upload: text fields first, the file last (the receiver streams
 // the file straight to disk once it reaches it).
@@ -126,7 +137,6 @@ const api = {
 
 let S = null;          // server state
 let dragging = false;
-let orderQueue = Promise.resolve();
 // Keep optimistic row order visible until the queued saves finish.
 const sortingLists = new Set();
 let modalOpen = false;
@@ -290,10 +300,8 @@ function makeSortable(list, onDone) {
   const saveOrder = async (ids, handle) => {
     pending++;
     sortingLists.add(list);
-    const saved = orderQueue.then(() => onDone(ids));
-    orderQueue = saved.catch(() => {});
     let restoreFocus = false;
-    try { await saved; } catch (e) { fail(e); }
+    try { await onDone(ids); } catch (e) { fail(e); }
     finally {
       restoreFocus = !!handle && (document.activeElement === handle || (!list.isConnected && document.activeElement === document.body));
       if (--pending === 0) {

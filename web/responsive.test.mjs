@@ -59,6 +59,10 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   for (const folder of ['enigma2', 'epgimport', 'picons']) await mkdir(join(dir, folder));
   await writeFile(join(dir, 'data/state.json'), JSON.stringify(state));
   await writeFile(join(dir, 'data/channels/demo-source.json'), JSON.stringify(channels));
+  const nativeID = 'userbouquet.demo.tv';
+  await writeFile(join(dir, 'enigma2/bouquets.tv'), `#NAME TV\n#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "${nativeID}" ORDER BY bouquet\n`);
+  await writeFile(join(dir, 'enigma2', nativeID), '#NAME Учебный букет\n' +
+    [1, 2, 3].map(i => `#SERVICE 1:0:1:${i}:1:1:0:0:0:0:\n#DESCRIPTION Учебный канал ${i}\n`).join(''));
   service = spawn(resolve(binary), ['-listen', `127.0.0.1:${port}`, '-data', join(dir, 'data'),
     '-e2dir', join(dir, 'enigma2'), '-epgimport-dir', join(dir, 'epgimport'), '-plugin-dir', '',
     '-picon-dir', join(dir, 'picons'), '-webif', ''], { stdio: 'ignore' });
@@ -91,6 +95,22 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
     assert.equal(await evaluate('document.querySelector(".channel-menu-toggle[aria-expanded=true]") !== null'), true);
   };
   const menuClosed = async () => browser('wait', '--fn', '!document.querySelector(".channel-secondary:popover-open")');
+  const delayOrders = async (milliseconds) => evaluate(`(() => {
+    window.originalFetch = window.fetch;
+    window.orderSaves = [];
+    let count = 0;
+    window.fetch = (...args) => {
+      if (args[0] !== '/api/bouquets/demo-favorites' || args[1]?.method !== 'PUT') return window.originalFetch(...args);
+      const first = count++ === 0;
+      const saved = (async () => {
+        if (first) await new Promise(r => setTimeout(r, ${milliseconds}));
+        return window.originalFetch(...args);
+      })();
+      window.orderSaves.push(saved);
+      return saved;
+    };
+  })()`);
+  const restoreFetch = () => evaluate('window.fetch = window.originalFetch; delete window.originalFetch; delete window.orderSaves');
   const layout = async (width, channelRows = false) => {
     const metrics = await evaluate(`(() => {
       const box = e => { const r = e.getBoundingClientRect(); return { x:r.x, y:r.y, right:r.right, bottom:r.bottom, width:r.width, height:r.height }; };
@@ -209,21 +229,7 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   await browser('wait', '--fn', `document.querySelector('.sortable-item').dataset.id === ${JSON.stringify(before[0])}`);
   await browser('wait', '--fn', 'document.activeElement.matches(".row:nth-child(2) .grip")');
   assert.equal((await (await fetch(`${base}/api/state`)).json()).bouquets[0].channels[0].id, before[0].split('/')[1], 'keyboard order persisted');
-  await evaluate(`(() => {
-    window.originalFetch = window.fetch;
-    window.orderSaves = [];
-    let count = 0;
-    window.fetch = (...args) => {
-      if (args[0] !== '/api/bouquets/demo-favorites' || args[1]?.method !== 'PUT') return window.originalFetch(...args);
-      const first = count++ === 0;
-      const saved = (async () => {
-        if (first) await new Promise(r => setTimeout(r, 1500));
-        return window.originalFetch(...args);
-      })();
-      window.orderSaves.push(saved);
-      return saved;
-    };
-  })()`);
+  await delayOrders(1500);
   await browser('focus', '.row:first-child .grip');
   await browser('press', 'ArrowDown');
   assert.equal(await evaluate('document.activeElement.matches(".grip")'), true, 'handle retains focus while save is pending');
@@ -231,11 +237,36 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   await evaluate('Promise.all(window.orderSaves)');
   await browser('wait', '--fn', `fetch('/api/state').then(r=>r.json()).then(s=>s.bouquets[0].channels[2].id === ${JSON.stringify(before[0].split('/')[1])})`);
   await browser('wait', '--fn', 'document.activeElement.matches(".row:nth-child(3) .grip")');
-  await evaluate('window.fetch = window.originalFetch; delete window.originalFetch; delete window.orderSaves');
-  await menuOpen();
+  await restoreFetch();
+  await delayOrders(5000);
+  await browser('focus', '.row:first-child .grip');
+  await browser('press', 'ArrowDown');
+  await browser('press', 'ArrowDown');
+  const removedID = await evaluate('document.querySelector(".row:nth-child(4)").dataset.id.split("/")[1]');
+  await menuOpen('.row:nth-child(4)');
   await browser('click', '.channel-secondary:popover-open .danger');
+  await browser('wait', '--fn', 'window.orderSaves.length === 2');
+  await evaluate('Promise.all(window.orderSaves)');
   await browser('wait', '--fn', `document.querySelectorAll('.list > .row').length === ${refs.length - 1}`);
-  assert.equal((await (await fetch(`${base}/api/state`)).json()).bouquets[0].channels.length, refs.length - 1);
+  const afterRemove = (await (await fetch(`${base}/api/state`)).json()).bouquets[0].channels;
+  assert.equal(afterRemove.length, refs.length - 1);
+  assert.equal(afterRemove.some(c => c.id === removedID), false, 'queued order cannot restore a removed channel');
+  await restoreFetch();
+
+  await delayOrders(10000);
+  await browser('focus', '.row:first-child .grip');
+  await browser('press', 'ArrowDown');
+  await open(`lists/receiver/${nativeID}`, '.receiver-editor .row');
+  await browser('focus', '.row:first-child .grip');
+  await browser('press', 'ArrowDown');
+  await browser('click', '.row:first-child .danger');
+  await evaluate('Promise.all(window.orderSaves)');
+  await restoreFetch();
+  await open('lists', '.list-card');
+  await open(`lists/receiver/${nativeID}`, '.receiver-editor .row');
+  assert.equal(await evaluate('document.querySelectorAll(".receiver-editor .row").length'), 2, 'receiver draft stays valid while playlist saves are pending');
+  assert.equal((await (await fetch(`${base}/api/receiver-bouquets/${nativeID}`)).json()).channels.length, 3, 'receiver fixture was not saved');
+  await open('lists/demo-favorites', '.channel-row');
   await layout(390, true);
   await browser('scroll', 'down', '5000');
   assert.equal(await evaluate('document.querySelector("#view .actions:last-child").getBoundingClientRect().bottom <= document.querySelector("#applybar").getBoundingClientRect().top'), true, 'save panel covers the final action');
