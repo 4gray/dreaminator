@@ -1138,12 +1138,14 @@ function epgCard() {
     !S.epgImportInstalled && h('div', { class: 'form-error' }, t('epgimport_missing')),
     status,
     h('div', { class: 'actions' }, btn),
-    h('details', { class: 'howto' },
+    h('details', { class: 'howto', open: true },
       h('summary', {}, t('epg_one_time_setup')),
       h('ol', {},
         h('li', {}, t('epg_setup_step1')),
         h('li', {}, t('epg_setup_step2')),
-        h('li', {}, t('epg_setup_step3')))));
+        h('li', {}, t('epg_setup_step3')),
+        h('li', {}, t('epg_setup_step4')),
+        h('li', {}, t('epg_setup_step5')))));
 }
 
 function piconCard() {
