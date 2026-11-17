@@ -52,6 +52,9 @@
   .chan .ev.none { font-style: italic; opacity: .6; }
   .chan .pic { grid-column: 3; grid-row: 1 / span 2; width: 74px; height: 44px; object-fit: contain; }
   .infobar .pic { position: absolute; right: 16px; top: 12px; width: 110px; height: 66px; object-fit: contain; }
+  [dir="rtl"] .chan { text-align: right; }
+  [dir="rtl"] .chan.on { box-shadow: inset -3px 0 0 var(--accent); }
+  [dir="rtl"] .infobar .pic { right: auto; left: 16px; }
 
   .ok { color: var(--ok); } .bad { color: var(--bad); }
   ul.problems { margin: 0; padding-left: 18px; color: var(--bad); font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
@@ -63,7 +66,7 @@
 </head>
 <body>
 <header>
-  <h1>Виртуальный Dreambox <small>имитация Enigma2 + OpenWebif + EPGImport</small></h1>
+  <h1><span id="hdr-title">Виртуальный Dreambox</span> <small id="hdr-sub">имитация Enigma2 + OpenWebif + EPGImport</small></h1>
   <button id="power">⏻ Питание</button>
 </header>
 
@@ -74,7 +77,7 @@
       <div class="under-tv" id="under"></div>
     </div>
     <div class="panel">
-      <h2><span>Проверка списков (как их прочитает Enigma2)</span></h2>
+      <h2><span id="lbl-check">Проверка списков (как их прочитает Enigma2)</span></h2>
       <div class="body" id="check"></div>
     </div>
     <div class="panel">
@@ -84,23 +87,69 @@
   </div>
   <div class="stack">
     <div class="panel">
-      <h2><span>Список каналов</span></h2>
+      <h2><span id="lbl-channels">Список каналов</span></h2>
       <div class="tabs" id="tabs"></div>
       <div class="channels" id="channels"></div>
     </div>
     <div class="panel">
-      <h2><span>Журнал ресивера</span></h2>
+      <h2><span id="lbl-journal">Журнал ресивера</span></h2>
       <div class="body journal" id="journal"></div>
     </div>
   </div>
 </div>
 
 <script>
+const LOCALES = { pt: 'pt-PT', fr: 'fr-FR', he: 'he-IL', ar: 'ar-SA', it: 'it-IT', de: 'de-DE', es: 'es-ES', pl: 'pl-PL', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN', th: 'th-TH', tr: 'tr-TR', cs: 'cs-CZ', ru: 'ru-RU' };
+const I18N = {
+  ru: { title: 'Виртуальный Dreambox', sub: 'имитация Enigma2 + OpenWebif + EPGImport', power: '⏻ Питание', check: 'Проверка списков (как их прочитает Enigma2)', runImport: 'Запустить импорт', importing: 'Импорт…', chList: 'Список каналов', journal: 'Журнал ресивера', sat: 'DVB (спутник)', playErr: 'Браузер не смог показать поток ({msg}). Для проверки ресивера это не критично — Enigma2 играет больше форматов.', standby: 'Режим ожидания', screenOff: 'экран выключен', noChannel: 'Нет канала', noChHint: 'нажмите «На ТВ» в Dreaminator или выберите канал справа', satNoSim: 'спутниковый канал — в симуляторе не показывается', noGuide: 'Нет данных о программе', noLists: 'Списков нет', noProgShort: 'нет программы', satShort: 'спутник', errorsFound: 'Найдено ошибок: {n}', formatOk: '✓ Формат в порядке', stats: 'бакетов: {b}, сервисов: {s} · перечитано: {t}', src: 'Источник', found: 'найден', enabled: 'отмечен', notEnabled: 'не отмечен', addr: 'Адрес', res: 'Результат', eventsRes: '{ev} передач для {ch} каналов', notRun: 'ещё не запускался', run: 'Запуск' },
+  en: { title: 'Virtual Dreambox', sub: 'Enigma2 + OpenWebif + EPGImport simulator', power: '⏻ Power', check: 'Bouquet check (as read by Enigma2)', runImport: 'Run import', importing: 'Importing…', chList: 'Channel list', journal: 'Receiver log', sat: 'DVB (satellite)', playErr: 'Browser could not play stream ({msg}). Not critical — Enigma2 supports more formats.', standby: 'Standby', screenOff: 'screen is off', noChannel: 'No channel', noChHint: 'press “On TV” in Dreaminator or pick a channel on the right', satNoSim: 'satellite channel — not shown in simulator', noGuide: 'No programme data', noLists: 'No lists', noProgShort: 'no guide', satShort: 'satellite', errorsFound: 'Errors found: {n}', formatOk: '✓ Format OK', stats: 'bouquets: {b}, services: {s} · reloaded: {t}', src: 'Source', found: 'found', enabled: 'enabled', notEnabled: 'disabled', addr: 'URL', res: 'Result', eventsRes: '{ev} programmes for {ch} channels', notRun: 'not run yet', run: 'Last run' },
+  fr: { title: 'Dreambox Virtuel', sub: 'simulateur Enigma2 + OpenWebif + EPGImport', power: '⏻ Alimentation', check: 'Vérification des listes (lues par Enigma2)', runImport: 'Lancer l’import', importing: 'Import…', chList: 'Liste des chaînes', journal: 'Journal du récepteur', sat: 'DVB (satellite)', playErr: 'Le navigateur ne peut pas lire ce flux ({msg}). Enigma2 prend en charge plus de formats.', standby: 'Veille', screenOff: 'écran éteint', noChannel: 'Aucune chaîne', noChHint: 'cliquez sur « Sur TV » dans Dreaminator ou choisissez à droite', satNoSim: 'chaîne satellite — non affichée', noGuide: 'Pas de programme', noLists: 'Aucune liste', noProgShort: 'sans guide', satShort: 'satellite', errorsFound: 'Erreurs : {n}', formatOk: '✓ Format valide', stats: 'bouquets : {b}, services : {s} · relu : {t}', src: 'Source', found: 'trouvé', enabled: 'activé', notEnabled: 'désactivé', addr: 'Adresse', res: 'Résultat', eventsRes: '{ev} programmes pour {ch} chaînes', notRun: 'pas encore lancé', run: 'Lancement' },
+  pt: { title: 'Dreambox Virtual', sub: 'simulação Enigma2 + OpenWebif + EPGImport', power: '⏻ Energia', check: 'Verificação de listas (lidas pelo Enigma2)', runImport: 'Iniciar importação', importing: 'A importar…', chList: 'Lista de canais', journal: 'Registo do recetor', sat: 'DVB (satélite)', playErr: 'O navegador não conseguiu reproduzir ({msg}). O Enigma2 suporta mais formatos.', standby: 'Em espera', screenOff: 'ecrã desligado', noChannel: 'Sem canal', noChHint: 'prima «Na TV» no Dreaminator ou escolha um canal à direita', satNoSim: 'canal satélite — não exibido no simulador', noGuide: 'Sem dados do guia', noLists: 'Sem listas', noProgShort: 'sem guia', satShort: 'satélite', errorsFound: 'Erros encontrados: {n}', formatOk: '✓ Formato OK', stats: 'bouquets: {b}, serviços: {s} · relido: {t}', src: 'Fonte', found: 'encontrada', enabled: 'ativada', notEnabled: 'desativada', addr: 'Endereço', res: 'Resultado', eventsRes: '{ev} programas para {ch} canais', notRun: 'ainda não executado', run: 'Execução' },
+  es: { title: 'Dreambox Virtual', sub: 'simulador Enigma2 + OpenWebif + EPGImport', power: '⏻ Encendido', check: 'Comprobación de listas (como las lee Enigma2)', runImport: 'Iniciar importación', importing: 'Importando…', chList: 'Lista de canales', journal: 'Registro del receptor', sat: 'DVB (satélite)', playErr: 'El navegador no pudo reproducir ({msg}). Enigma2 reproduce más formatos.', standby: 'En reposo', screenOff: 'pantalla apagada', noChannel: 'Sin canal', noChHint: 'pulsa «En TV» en Dreaminator o elige un canal a la derecha', satNoSim: 'canal satélite — no mostrado en simulador', noGuide: 'Sin datos de programa', noLists: 'Sin listas', noProgShort: 'sin guía', satShort: 'satélite', errorsFound: 'Errores: {n}', formatOk: '✓ Formato correcto', stats: 'bouquets: {b}, servicios: {s} · recargado: {t}', src: 'Fuente', found: 'encontrada', enabled: 'marcada', notEnabled: 'desmarcada', addr: 'Dirección', res: 'Resultado', eventsRes: '{ev} programas para {ch} canales', notRun: 'aún no ejecutado', run: 'Ejecución' },
+  it: { title: 'Dreambox Virtuale', sub: 'simulazione Enigma2 + OpenWebif + EPGImport', power: '⏻ Alimentazione', check: 'Controllo liste (lette da Enigma2)', runImport: 'Avvia importazione', importing: 'Importazione…', chList: 'Lista canali', journal: 'Registro ricevitore', sat: 'DVB (satellite)', playErr: 'Il browser non riproduce il flusso ({msg}). Enigma2 supporta più formati.', standby: 'Standby', screenOff: 'schermo spento', noChannel: 'Nessun canale', noChHint: 'premi «Su TV» in Dreaminator o scegli un canale a destra', satNoSim: 'canale satellitare — non mostrato', noGuide: 'Nessun dato guida', noLists: 'Nessuna lista', noProgShort: 'nessuna guida', satShort: 'satellite', errorsFound: 'Errori: {n}', formatOk: '✓ Formato OK', stats: 'bouquet: {b}, servizi: {s} · riletto: {t}', src: 'Fonte', found: 'trovata', enabled: 'attiva', notEnabled: 'disattiva', addr: 'Indirizzo', res: 'Risultato', eventsRes: '{ev} programmi per {ch} canali', notRun: 'non ancora avviato', run: 'Avvio' },
+  de: { title: 'Virtuelle Dreambox', sub: 'Enigma2 + OpenWebif + EPGImport Simulator', power: '⏻ Ein/Aus', check: 'Listenprüfung (wie von Enigma2 gelesen)', runImport: 'Import starten', importing: 'Importiere…', chList: 'Kanalliste', journal: 'Receiver-Log', sat: 'DVB (Satellit)', playErr: 'Browser kann Stream nicht abspielen ({msg}). Enigma2 unterstützt mehr Formate.', standby: 'Standby', screenOff: 'Bildschirm aus', noChannel: 'Kein Kanal', noChHint: 'Klicken Sie in Dreaminator auf „Auf TV“ oder wählen Sie rechts einen Kanal', satNoSim: 'Satellitenkanal — im Simulator nicht gezeigt', noGuide: 'Keine Programmdaten', noLists: 'Keine Listen', noProgShort: 'kein EPG', satShort: 'Satellit', errorsFound: 'Fehler gefunden: {n}', formatOk: '✓ Format OK', stats: 'Bouquets: {b}, Dienste: {s} · neu geladen: {t}', src: 'Quelle', found: 'gefunden', enabled: 'aktiviert', notEnabled: 'nicht aktiviert', addr: 'Adresse', res: 'Ergebnis', eventsRes: '{ev} Sendungen für {ch} Kanäle', notRun: 'noch nicht gestartet', run: 'Start' },
+  pl: { title: 'Wirtualny Dreambox', sub: 'symulacja Enigma2 + OpenWebif + EPGImport', power: '⏻ Zasilanie', check: 'Sprawdzenie list (jak czyta je Enigma2)', runImport: 'Uruchom import', importing: 'Importowanie…', chList: 'Lista kanałów', journal: 'Dziennik dekodera', sat: 'DVB (satelita)', playErr: 'Przeglądarka nie odtworzyła strumienia ({msg}). Enigma2 obsługuje więcej formatów.', standby: 'Czuwanie', screenOff: 'ekran wyłączony', noChannel: 'Brak kanału', noChHint: 'kliknij „Na TV” w Dreaminator lub wybierz kanał po prawej', satNoSim: 'kanał satelitarny — nie pokazywany', noGuide: 'Brak danych programu', noLists: 'Brak list', noProgShort: 'brak EPG', satShort: 'satelita', errorsFound: 'Znaleziono błędów: {n}', formatOk: '✓ Format poprawny', stats: 'bukiety: {b}, serwisy: {s} · wczytano: {t}', src: 'Źródło', found: 'znaleziono', enabled: 'zaznaczone', notEnabled: 'niezaznaczone', addr: 'Adres', res: 'Wynik', eventsRes: '{ev} audycji dla {ch} kanałów', notRun: 'jeszcze nie uruchomiono', run: 'Uruchomienie' },
+  cs: { title: 'Virtuální Dreambox', sub: 'simulace Enigma2 + OpenWebif + EPGImport', power: '⏻ Napájení', check: 'Kontrola seznamů (jak je čte Enigma2)', runImport: 'Spustit import', importing: 'Importuji…', chList: 'Seznam kanálů', journal: 'Záznam přijímače', sat: 'DVB (satelit)', playErr: 'Prohlížeč nepřehrál stream ({msg}). Enigma2 podporuje více formátů.', standby: 'Pohotovost', screenOff: 'obrazovka vypnuta', noChannel: 'Žádný kanál', noChHint: 'klikněte na „V TV“ v Dreaminator nebo vyberte kanál vpravo', satNoSim: 'satelitní kanál — nezobrazuje se', noGuide: 'Žádná data EPG', noLists: 'Žádné seznamy', noProgShort: 'bez EPG', satShort: 'satelit', errorsFound: 'Nalezeno chyb: {n}', formatOk: '✓ Formát v pořádku', stats: 'buketů: {b}, služeb: {s} · načteno: {t}', src: 'Zdroj', found: 'nalezen', enabled: 'zaškrtnut', notEnabled: 'nezaškrtnut', addr: 'Adresa', res: 'Výsledek', eventsRes: '{ev} pořadů pro {ch} kanálů', notRun: 'ještě nespuštěno', run: 'Spuštění' },
+  tr: { title: 'Sanal Dreambox', sub: 'Enigma2 + OpenWebif + EPGImport simülasyonu', power: '⏻ Güç', check: 'Liste kontrolü (Enigma2 okuması)', runImport: 'İçe aktarmayı başlat', importing: 'Aktarılıyor…', chList: 'Kanal listesi', journal: 'Alıcı günlüğü', sat: 'DVB (uydu)', playErr: 'Tarayıcı yayını oynatamadı ({msg}). Enigma2 daha fazla biçim destekler.', standby: 'Bekleme', screenOff: 'ekran kapalı', noChannel: 'Kanal yok', noChHint: 'Dreaminator’da «TV’de» tuşuna basın veya sağdan kanal seçin', satNoSim: 'uydu kanalı — simülatörde gösterilmez', noGuide: 'Program bilgisi yok', noLists: 'Liste yok', noProgShort: 'rehber yok', satShort: 'uydu', errorsFound: 'Hata bulundu: {n}', formatOk: '✓ Biçim uygun', stats: 'buket: {b}, servis: {s} · yenilendi: {t}', src: 'Kaynak', found: 'bulundu', enabled: 'etkin', notEnabled: 'etkin değil', addr: 'Adres', res: 'Sonuç', eventsRes: '{ch} kanal için {ev} program', notRun: 'henüz çalışmadı', run: 'Çalıştırma' },
+  he: { title: 'Dreambox וירטואלי', sub: 'הדמיית Enigma2 + OpenWebif + EPGImport', power: '⏻ הפעלה', check: 'בדיקת רשימות (כפי שנקראות ב-Enigma2)', runImport: 'הפעל ייבוא', importing: 'מייבא…', chList: 'רשימת ערוצים', journal: 'יומן הממיר', sat: 'DVB (לוויין)', playErr: 'הדפדפן לא הצליח לנגן ({msg}). Enigma2 תומכת ביותר פורמטים.', standby: 'המתנה', screenOff: 'מסך כבוי', noChannel: 'אין ערוץ', noChHint: 'לחץ «בטלוויזיה» ב-Dreaminator או בחר ערוץ משמאל', satNoSim: 'ערוץ לוויין — לא מוצג בסימולטור', noGuide: 'אין נתוני שידורים', noLists: 'אין רשימות', noProgShort: 'אין מדריך', satShort: 'לוויין', errorsFound: 'שגיאות שנמצאו: {n}', formatOk: '✓ פורמט תקין', stats: 'בוקים: {b}, ערוצים: {s} · נטען: {t}', src: 'מקור', found: 'נמצא', enabled: 'מסומן', notEnabled: 'לא מסומן', addr: 'כתובת', res: 'תוצאה', eventsRes: '{ev} תוכניות ל-{ch} ערוצים', notRun: 'טרם הופעל', run: 'הפעלה' },
+  ar: { title: 'Dreambox افتراضي', sub: 'محاكاة Enigma2 + OpenWebif + EPGImport', power: '⏻ الطاقة', check: 'فحص القوائم (كما يقرأها Enigma2)', runImport: 'بدء الاستيراد', importing: 'جارٍ الاستيراد…', chList: 'قائمة القنوات', journal: 'سجل الجهاز', sat: 'DVB (أقمار)', playErr: 'تعذر تشغيل البث في المتصفح ({msg}). يدعم Enigma2 صيغاً أكثر.', standby: 'وضع الاستعداد', screenOff: 'الشاشة مطفأة', noChannel: 'لا توجد قناة', noChHint: 'اضغط «على التلفاز» في Dreaminator أو اختر قناة', satNoSim: 'قناة فضائية — لا تُعرض في المحاكي', noGuide: 'لا توجد بيانات برامج', noLists: 'لا توجد قوائم', noProgShort: 'بدون دليل', satShort: 'فضائي', errorsFound: 'الأخطاء: {n}', formatOk: '✓ الصيغة سليمة', stats: 'الباقات: {b}، القنوات: {s} · أُعيدت قراءته: {t}', src: 'المصدر', found: 'موجود', enabled: 'مفعل', notEnabled: 'غير مفعل', addr: 'العنوان', res: 'النتيجة', eventsRes: '{ev} برنامج لـ {ch} قناة', notRun: 'لم يعمل بعد', run: 'التشغيل' },
+  ja: { title: '仮想 Dreambox', sub: 'Enigma2 + OpenWebif + EPGImport シミュレータ', power: '⏻ 電源', check: 'リスト確認 (Enigma2 読み込み形式)', runImport: 'インポート実行', importing: '実行中…', chList: 'チャンネル一覧', journal: '受信機ログ', sat: 'DVB (衛星)', playErr: 'ブラウザで再生できませんでした ({msg})。Enigma2 はより多くの形式に対応しています。', standby: 'スタンバイ', screenOff: '画面オフ', noChannel: 'チャンネルなし', noChHint: 'Dreaminator で「TVへ」を押すか右から選択してください', satNoSim: '衛星チャンネル — シミュレータ非対応', noGuide: '番組データなし', noLists: 'リストなし', noProgShort: '番組情報なし', satShort: '衛星', errorsFound: 'エラー: {n}', formatOk: '✓ 形式正常', stats: 'ブーケ: {b}, サービス: {s} · 更新: {t}', src: 'ソース', found: '検出', enabled: '有効', notEnabled: '無効', addr: 'URL', res: '結果', eventsRes: '{ch}チャンネルに{ev}番組', notRun: '未実行', run: '実行' },
+  zh: { title: '虚拟 Dreambox', sub: 'Enigma2 + OpenWebif + EPGImport 模拟器', power: '⏻ 电源', check: '列表检查 (Enigma2 解析结果)', runImport: '运行导入', importing: '导入中…', chList: '频道列表', journal: '接收机日志', sat: 'DVB (卫星)', playErr: '浏览器无法播放此流 ({msg})。Enigma2 支持更多格式。', standby: '待机', screenOff: '屏幕已关闭', noChannel: '无频道', noChHint: '请在 Dreaminator 点击“电视播放”或在右侧选择频道', satNoSim: '卫星频道 — 模拟器不显示', noGuide: '暂无节目信息', noLists: '无列表', noProgShort: '无节目表', satShort: '卫星', errorsFound: '发现错误：{n}', formatOk: '✓ 格式正常', stats: '频道束：{b}，服务：{s} · 重载：{t}', src: '源', found: '已找到', enabled: '已启用', notEnabled: '未启用', addr: '地址', res: '结果', eventsRes: '{ch} 个频道共 {ev} 条节目', notRun: '尚未运行', run: '运行' },
+  th: { title: 'Dreambox เสมือน', sub: 'จำลอง Enigma2 + OpenWebif + EPGImport', power: '⏻ เปิด/ปิด', check: 'ตรวจสอบรายการ (แบบที่ Enigma2 อ่าน)', runImport: 'เริ่มนำเข้า', importing: 'กำลังนำเข้า…', chList: 'รายการช่อง', journal: 'บันทึกเครื่องรับ', sat: 'DVB (ดาวเทียม)', playErr: 'เบราว์เซอร์เล่นสตรีมไม่ได้ ({msg}) แต่ Enigma2 รองรับหลายรูปแบบกว่า', standby: 'สแตนด์บาย', screenOff: 'หน้าจอปิดอยู่', noChannel: 'ไม่มีช่อง', noChHint: 'กด “บนทีวี” ใน Dreaminator หรือเลือกช่องทางขวา', satNoSim: 'ช่องดาวเทียม — ไม่แสดงในตัวจำลอง', noGuide: 'ไม่มีข้อมูลรายการ', noLists: 'ไม่มีรายการ', noProgShort: 'ไม่มีผังรายการ', satShort: 'ดาวเทียม', errorsFound: 'พบข้อผิดพลาด: {n}', formatOk: '✓ รูปแบบถูกต้อง', stats: 'บูเกต์: {b}, ช่อง: {s} · โหลดใหม่: {t}', src: 'แหล่งที่มา', found: 'พบ', enabled: 'เปิดใช้งาน', notEnabled: 'ไม่ได้เลือก', addr: 'ที่อยู่', res: 'ผลลัพธ์', eventsRes: '{ev} รายการสำหรับ {ch} ช่อง', notRun: 'ยังไม่เคยทำงาน', run: 'ทำงานล่าสุด' },
+};
+function pickLang() {
+  const list = Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || 'ru'];
+  for (const tag of list) {
+    let p = String(tag || '').toLowerCase().replace(/_/g, '-').split('-')[0];
+    if (p === 'iw') p = 'he'; if (p === 'cz') p = 'cs'; if (p === 'jp') p = 'ja';
+    if (I18N[p]) return p;
+  }
+  return 'ru';
+}
+const LANG = pickLang();
+const LOC = LOCALES[LANG] || 'en-US';
+const T = (k, v) => {
+  let s = (I18N[LANG] && I18N[LANG][k]) || I18N.ru[k] || k;
+  if (v) for (const [a, b] of Object.entries(v)) s = s.replaceAll(`{${a}}`, String(b));
+  return s;
+};
+document.documentElement.lang = LANG;
+document.documentElement.dir = (LANG === 'he' || LANG === 'ar') ? 'rtl' : 'ltr';
+document.title = T('title');
+
 const $ = (s) => document.querySelector(s);
+$('#hdr-title').textContent = T('title');
+$('#hdr-sub').textContent = T('sub');
+$('#power').textContent = T('power');
+$('#lbl-check').textContent = T('check');
+$('#epg').textContent = T('runImport');
+$('#lbl-channels').textContent = T('chList');
+$('#lbl-journal').textContent = T('journal');
+
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const hm = (iso) => new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-const ago = (iso) => iso ? new Date(iso).toLocaleTimeString('ru-RU') : '—';
-const typeName = { 1: 'DVB (спутник)', 4097: 'GStreamer', 5001: 'ServiceApp/GStreamer', 5002: 'ServiceApp/exteplayer3' };
+const hm = (iso) => new Date(iso).toLocaleTimeString(LOC, { hour: '2-digit', minute: '2-digit' });
+const ago = (iso) => iso ? new Date(iso).toLocaleTimeString(LOC) : '—';
+const typeName = { 1: T('sat'), 4097: 'GStreamer', 5001: 'ServiceApp/GStreamer', 5002: 'ServiceApp/exteplayer3' };
 
 let S = null, tab = 0, playing = null, player = null, lastLists = '';
 
@@ -141,7 +190,7 @@ async function startPlayer(video, url) {
 }
 
 function showPlayError(msg) {
-  const u = $('#under'); if (u) u.innerHTML = `<span class="bad">Браузер не смог показать поток (${esc(msg)}). Для проверки ресивера это не критично — Enigma2 играет больше форматов.</span>`;
+  const u = $('#under'); if (u) u.innerHTML = `<span class="bad">${esc(T('playErr', { msg }))}</span>`;
 }
 
 function renderTV() {
@@ -151,9 +200,9 @@ function renderTV() {
   if (key !== playing) {
     stopPlayer();
     playing = key;
-    if (S.standby) tv.innerHTML = `<div class="msg">Режим ожидания<small>экран выключен</small></div>`;
-    else if (!cur) tv.innerHTML = `<div class="msg">Нет канала<small>нажмите «На ТВ» в Dreaminator или выберите канал справа</small></div>`;
-    else if (!cur.url) tv.innerHTML = `<div class="msg">${esc(cur.name)}<small>спутниковый канал — в симуляторе не показывается</small></div>`;
+    if (S.standby) tv.innerHTML = `<div class="msg">${esc(T('standby'))}<small>${esc(T('screenOff'))}</small></div>`;
+    else if (!cur) tv.innerHTML = `<div class="msg">${esc(T('noChannel'))}<small>${esc(T('noChHint'))}</small></div>`;
+    else if (!cur.url) tv.innerHTML = `<div class="msg">${esc(cur.name)}<small>${esc(T('satNoSim'))}</small></div>`;
     else {
       tv.innerHTML = `<video muted autoplay playsinline controls></video><div class="infobar" id="infobar"></div>`;
       $('#under').innerHTML = '';
@@ -162,9 +211,9 @@ function renderTV() {
   }
   const ib = $('#infobar');
   if (ib && cur) {
-    const ev = (e, label) => e ? `<div class="row"><span class="time">${hm(e.start)}–${hm(e.stop)}</span><span>${esc(e.title)}</span></div>` : '';
+    const ev = (e) => e ? `<div class="row"><span class="time">${hm(e.start)}–${hm(e.stop)}</span><span>${esc(e.title)}</span></div>` : '';
     ib.innerHTML = `<img class="pic" alt="" src="/tv/picon?ref=${encodeURIComponent(cur.ref)}" onerror="this.remove()"><div class="ch">${esc(cur.name)}</div>` +
-      (cur.now || cur.next ? ev(cur.now) + ev(cur.next) : `<div class="row"><span style="opacity:.6">Нет данных о программе</span></div>`) +
+      (cur.now || cur.next ? ev(cur.now) + ev(cur.next) : `<div class="row"><span style="opacity:.6">${esc(T('noGuide'))}</span></div>`) +
       (cur.now ? `<div class="bar"><i style="width:${progress(cur.now)}%"></i></div>` : '');
   }
   if (cur && !S.standby) {
@@ -182,13 +231,13 @@ function renderLists() {
   $('#tabs').innerHTML = bqs.map((b, i) =>
     `<button class="tab ${i === tab ? 'on' : ''}" data-i="${i}">${esc(b.name)}${b.ours ? '<span class="ours">★</span>' : ''}</button>`).join('');
   const b = bqs[tab];
-  $('#channels').innerHTML = !b ? '<div class="body" style="color:var(--muted)">Списков нет</div>' :
+  $('#channels').innerHTML = !b ? `<div class="body" style="color:var(--muted)">${esc(T('noLists'))}</div>` :
     (b.services || []).map((s, i) => `
       <button class="chan ${S.current && S.current.ref === s.ref ? 'on' : ''}" data-ref="${esc(s.ref)}">
         <span class="num">${i + 1}</span>
         <span class="nm">${esc(s.name)}</span>
         <img class="pic" alt="" src="/tv/picon?ref=${encodeURIComponent(s.ref)}" onerror="this.style.visibility='hidden'">
-        <span class="ev ${s.now ? '' : 'none'}">${s.now ? esc(hm(s.now.start) + ' ' + s.now.title) : (s.url ? 'нет программы' : 'спутник')}</span>
+        <span class="ev ${s.now ? '' : 'none'}">${s.now ? esc(hm(s.now.start) + ' ' + s.now.title) : esc(s.url ? T('noProgShort') : T('satShort'))}</span>
       </button>`).join('');
 }
 
@@ -196,17 +245,17 @@ function renderPanels() {
   const p = S.problems || [];
   const total = (S.bouquets || []).reduce((n, b) => n + (b.services || []).length, 0);
   $('#check').innerHTML = `<div class="${p.length ? 'bad' : 'ok'}" style="margin-bottom:${p.length ? 8 : 0}px">
-      ${p.length ? `Найдено ошибок: ${p.length}` : `✓ Формат в порядке`} · бакетов: ${(S.bouquets || []).length}, сервисов: ${total} · перечитано: ${ago(S.reloadedAt)}</div>` +
+      ${p.length ? esc(T('errorsFound', { n: p.length })) : esc(T('formatOk'))} · ${esc(T('stats', { b: (S.bouquets || []).length, s: total, t: ago(S.reloadedAt) }))}</div>` +
     (p.length ? `<ul class="problems">${p.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
 
   const e = S.epg || {};
   $('#epg').disabled = !!e.running;
-  $('#epg').textContent = e.running ? 'Импорт…' : 'Запустить импорт';
+  $('#epg').textContent = e.running ? T('importing') : T('runImport');
   $('#epginfo').innerHTML = `<dl class="kv">
-      <dt>Источник</dt><dd>${e.sourceFound ? '<span class="ok">найден</span>' : '—'} ${e.sourceFound ? (e.sourceEnabled ? '· <span class="ok">отмечен</span>' : '· <span class="bad">не отмечен</span>') : ''}</dd>
-      <dt>Адрес</dt><dd>${esc(e.url || '—')}</dd>
-      <dt>Результат</dt><dd>${e.error ? `<span class="bad">${esc(e.error)}</span>` : e.ranAt ? `<span class="ok">${e.events} передач для ${e.channels} каналов</span>` : 'ещё не запускался'}</dd>
-      <dt>Запуск</dt><dd>${ago(e.ranAt)}</dd></dl>`;
+      <dt>${esc(T('src'))}</dt><dd>${e.sourceFound ? `<span class="ok">${esc(T('found'))}</span>` : '—'} ${e.sourceFound ? (e.sourceEnabled ? `· <span class="ok">${esc(T('enabled'))}</span>` : `· <span class="bad">${esc(T('notEnabled'))}</span>`) : ''}</dd>
+      <dt>${esc(T('addr'))}</dt><dd>${esc(e.url || '—')}</dd>
+      <dt>${esc(T('res'))}</dt><dd>${e.error ? `<span class="bad">${esc(e.error)}</span>` : e.ranAt ? `<span class="ok">${esc(T('eventsRes', { ev: e.events, ch: e.channels }))}</span>` : esc(T('notRun'))}</dd>
+      <dt>${esc(T('run'))}</dt><dd>${ago(e.ranAt)}</dd></dl>`;
 
   const j = $('#journal');
   const atBottom = j.scrollTop + j.clientHeight >= j.scrollHeight - 4;

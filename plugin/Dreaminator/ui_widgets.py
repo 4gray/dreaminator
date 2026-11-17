@@ -17,10 +17,11 @@ from Components.Pixmap import Pixmap
 from Components.ProgressBar import ProgressBar
 
 try:
-    from . import ui_api, ui_theme as T
+    from . import ui_api, ui_i18n, ui_theme as T
     from .ui_models import GridModel, ListModel, PagedList
 except (ImportError, ValueError):
     import ui_api
+    import ui_i18n
     import ui_theme as T
     from ui_models import GridModel, ListModel, PagedList
 
@@ -49,27 +50,12 @@ def visible(widget, on):
 
 
 def duration(minutes):
-    try:
-        m = int(minutes)
-    except (TypeError, ValueError):
-        return ""
-    if m <= 0:
-        return ""
-    if m < 60:
-        return "%d мин" % m
-    return "%d ч %02d мин" % (m // 60, m % 60)
+    return ui_i18n.duration_text(minutes)
 
 
 def days_text(n):
     """'1 день', '3 дня', '7 дней'."""
-    n = int(n)
-    if n % 10 == 1 and n % 100 != 11:
-        word = "день"
-    elif 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
-        word = "дня"
-    else:
-        word = "дней"
-    return "%d %s" % (n, word)
+    return ui_i18n.days_text(n)
 
 
 def rating_text(rating):
@@ -103,13 +89,13 @@ def focus_meta(item):
     if duration(item.get("duration")):
         parts.append(duration(item.get("duration")))
     if item.get("kind") == "series":
-        parts.append("Сериал")
+        parts.append(ui_i18n.tr("Сериал"))
     elif item.get("kind") == "channel" and item.get("number"):
-        parts.append("Канал %s" % ui_api.text(item["number"]))
+        parts.append(ui_i18n.tr("Канал %s") % ui_api.text(item["number"]))
     if item.get("missing"):
-        parts.append("Нет в плейлисте")
+        parts.append(ui_i18n.tr("Нет в плейлисте"))
     elif item.get("fav"):
-        parts.append("В избранном")
+        parts.append(ui_i18n.tr("В избранном"))
     return " · ".join(parts)
 
 
@@ -336,12 +322,12 @@ class PosterGrid(object):
         # A slot without artwork still says what it is.
         title = clipped(item.get("name"), 60)
         if item.get("missing"):
-            title += "\n(нет в плейлисте)"
+            title += ui_i18n.tr("\n(нет в плейлисте)")
         w.text(p + "pt_%d" % slot, title)
         if self.text:
             w.text(p + "t_%d" % slot, clipped(item.get("name"), 34))
             w.text(p + "m_%d" % slot, meta_line(item))
-        badge = "Сериал" if item.get("kind") == "series" else ""
+        badge = ui_i18n.tr("Сериал") if item.get("kind") == "series" else ""
         if badge:
             w.text(p + "b_%d" % slot, badge)
         w.visible(p + "b_%d" % slot, bool(badge))
@@ -543,7 +529,7 @@ class ChannelList(object):
             return
         sc[p + "n_%d" % row].setText(ui_api.text(item.get("number") or ""))
         if item.get("missing"):
-            sc[p + "c_%d" % row].setText(clipped(item.get("name"), 22) + " · нет в плейлисте")
+            sc[p + "c_%d" % row].setText(clipped(item.get("name"), 22) + ui_i18n.tr(" · нет в плейлисте"))
         else:
             sc[p + "c_%d" % row].setText(clipped(item.get("name"), 38))
         # Cached: a show or hide costs ~3 ms on a DM520, most rows keep their state.
@@ -679,21 +665,21 @@ class ChannelList(object):
         self.w.text(p + "pv_name", clipped(item.get("name"), 44))
         archive = 0
         if item.get("missing"):
-            info = "Нет в плейлисте"
+            info = ui_i18n.tr("Нет в плейлисте")
         else:
-            info = "Канал %s" % ui_api.text(item.get("number") or "") if item.get("number") else ""
+            info = (ui_i18n.tr("Канал %s") % ui_api.text(item.get("number") or "")) if item.get("number") else ""
             try:
                 archive = int(item.get("archive") or 0)
             except (TypeError, ValueError):
                 pass
             if archive > 0:
-                info += (" · " if info else "") + "Архив " + days_text(archive)
+                info += (" · " if info else "") + ui_i18n.tr("Архив ") + days_text(archive)
         self.w.text(p + "pv_info", info)
         hint = ""
         if focused:
-            held = "OK долго — убрать из избранного" if item.get("fav") else "OK долго — в избранное"
-            guide = "EPG — программа и архив" if archive > 0 else "EPG — программа"
-            hint = held if item.get("missing") else "OK — смотреть · " + guide + "\n" + held
+            held = ui_i18n.tr("OK долго — убрать из избранного") if item.get("fav") else ui_i18n.tr("OK долго — в избранное")
+            guide = ui_i18n.tr("EPG — программа и архив") if archive > 0 else ui_i18n.tr("EPG — программа")
+            hint = held if item.get("missing") else ui_i18n.tr("OK — смотреть · ") + guide + "\n" + held
         self.w.text(p + "pv_hint", hint)
         key = self.image_key(item, "big")
         if key != self.preview_key:
@@ -724,16 +710,16 @@ class ChannelList(object):
         if now is None and guide.get("now") and not on_air(guide["now"], t) and upcoming and on_air(upcoming, t):
             now, upcoming = upcoming, None  # the answer is a little old: next is on now
         if now:
-            w.text(p + "pv_now_time", "Сейчас · " + span_text(now))
+            w.text(p + "pv_now_time", ui_i18n.tr("Сейчас · ") + span_text(now))
             w.text(p + "pv_now_title", clipped(now.get("title"), 60))
             self.set_value(p + "pv_bar", progress(now, t))
             w.visible(p + "pv_bar", True)
             w.text(p + "pv_now_desc", clipped(now.get("desc"), 150))
         else:
             if failed:
-                status = "Программа не загрузилась"
+                status = ui_i18n.tr("Программа не загрузилась")
             elif self.guide_key == item.get("key"):
-                status = "Нет программы"
+                status = ui_i18n.tr("Нет программы")
             else:
                 status = ""
             w.text(p + "pv_now_time", status)
@@ -741,7 +727,7 @@ class ChannelList(object):
             w.visible(p + "pv_bar", False)
             w.text(p + "pv_now_desc", "")
         if upcoming:
-            w.text(p + "pv_next_time", "Далее · " + hhmm(upcoming.get("start")))
+            w.text(p + "pv_next_time", ui_i18n.tr("Далее · ") + hhmm(upcoming.get("start")))
             w.text(p + "pv_next_title", clipped(upcoming.get("title"), 34))
             w.text(p + "pv_next_desc", clipped(upcoming.get("desc"), 80))
         else:
@@ -835,7 +821,7 @@ class OverlayMenu(object):
         sc = self.screen
         sc["om_title"].setText(ui_api.text(title))
         sc["om_sub"].setText(ui_api.text(subtitle))
-        sc["om_hint"].setText("OK — выбрать · Back — отмена")
+        sc["om_hint"].setText(ui_i18n.tr("OK — выбрать · Back — отмена"))
         # The panel fits the choice: four orders need no empty rows.
         rows = min(self.ROWS, len(options))
         height = 140 + rows * 66 + 70

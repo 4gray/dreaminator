@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -49,8 +50,33 @@ type Settings struct {
 	WebifPassword string `json:"webifPassword"`
 	InsecureTLS   bool   `json:"insecureTls"`
 	UserAgent     string `json:"userAgent"`
-	Picons        bool   `json:"picons"`   // channel logos as Enigma2 picons
-	PiconDir      string `json:"piconDir"` // "" = find the folder Enigma2 uses
+	Picons        bool   `json:"picons"`             // channel logos as Enigma2 picons
+	PiconDir      string `json:"piconDir"`           // "" = find the folder Enigma2 uses
+	Language      string `json:"language,omitempty"` // active UI language code, e.g. "fr", "pt", "en"
+}
+
+// NormalizeLanguage maps a locale/language tag (like "fr-FR", "pt_BR", "iw")
+// to one of the 15 supported Dreaminator UI language codes, or "" if unknown.
+func NormalizeLanguage(lang string) string {
+	s := strings.ToLower(strings.TrimSpace(lang))
+	if s == "" || s == "auto" {
+		return ""
+	}
+	s = strings.ReplaceAll(s, "_", "-")
+	if i := strings.IndexByte(s, '-'); i >= 0 {
+		s = s[:i]
+	}
+	switch s {
+	case "iw":
+		return "he"
+	case "cz":
+		return "cs"
+	case "jp":
+		return "ja"
+	case "pt", "fr", "he", "ar", "it", "de", "es", "pl", "en", "ja", "zh", "th", "tr", "cs", "ru":
+		return s
+	}
+	return ""
 }
 
 func DefaultSettings() Settings {
@@ -77,6 +103,7 @@ func (s *Settings) normalize() {
 	if s.RefreshHour < -1 || s.RefreshHour > 23 {
 		s.RefreshHour = 4
 	}
+	s.Language = NormalizeLanguage(s.Language)
 }
 
 type Source struct {

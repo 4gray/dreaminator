@@ -168,6 +168,15 @@ func New(a *app.App, static fs.FS) http.Handler {
 		}
 		reply(w, nil, a.UpdateSettings(body))
 	})
+	mux.HandleFunc("POST /api/language", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Language string `json:"language"`
+		}
+		if !readJSON(w, r, &body) {
+			return
+		}
+		reply(w, nil, a.SetLanguage(body.Language))
+	})
 	mux.HandleFunc("POST /api/picons/refresh", func(w http.ResponseWriter, r *http.Request) {
 		go a.SyncPicons(context.Background(), true)
 		writeJSON(w, http.StatusAccepted, map[string]bool{"ok": true})

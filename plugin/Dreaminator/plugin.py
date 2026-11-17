@@ -29,6 +29,11 @@ from Plugins.Plugin import PluginDescriptor
 from Screens.Screen import Screen
 from Tools.LoadPixmap import LoadPixmap
 
+try:
+    from . import ui_i18n
+except (ImportError, ValueError):
+    import ui_i18n
+
 BASE = "http://127.0.0.1:8088"
 QR_PATH = "/tmp/dreaminator-qr.png"
 PY2 = sys.version_info[0] == 2
@@ -96,16 +101,18 @@ def api(path, post=False, timeout=10):
 
 
 def summary():
-    return native(json.loads(api("/api/summary", timeout=5)))
+    s = native(json.loads(api("/api/summary", timeout=5)))
+    ui_i18n.set_summary_language(s.get("language"))
+    return s
 
 
 def error_text(failure):
     err = getattr(failure, "value", failure)
     if isinstance(err, HTTPError):
         try:
-            return native(json.loads(err.read())["error"])
+            return ui_i18n.tr_server(native(json.loads(err.read())["error"]))
         except Exception:
-            return "ошибка %s" % err.code
+            return ui_i18n.tr("ошибка %s") % err.code
     reason = getattr(err, "reason", None) or err
     return "%s" % reason
 
@@ -143,30 +150,32 @@ def scale_skin(skin, width):
 
 
 def describe(s, busy):
+    tr = ui_i18n.tr
+    trs = ui_i18n.tr_server
     lines = []
     if busy:
         lines.append(busy)
     elif s.get("refreshing"):
-        lines.append("Обновляю плейлисты…")
+        lines.append(tr("Обновляю плейлисты…"))
     if not s.get("sources"):
-        lines.append("Плейлистов пока нет — добавьте их с планшета.")
+        lines.append(tr("Плейлистов пока нет — добавьте их с планшета."))
     else:
-        when = s.get("lastRefreshText") or "ещё не загружались"
-        lines.append("Плейлистов: %d, обновлены %s" % (s["sources"], when))
-        lines.append("Каналов в ваших списках: %d" % s.get("channels", 0))
+        when = trs(s.get("lastRefreshText")) if s.get("lastRefreshText") else tr("ещё не загружались")
+        lines.append(tr("Плейлистов: %d, обновлены %s") % (s["sources"], when))
+        lines.append(tr("Каналов в ваших списках: %d") % s.get("channels", 0))
     if s.get("subscription"):
-        lines.append("Подписка: %s" % s["subscription"])
+        lines.append(tr("Подписка: %s") % trs(s["subscription"]))
     if s.get("dirty"):
-        lines.append("Есть изменения, не отправленные на ТВ — зелёная кнопка.")
+        lines.append(tr("Есть изменения, не отправленные на ТВ — зелёная кнопка."))
     elif s.get("lastApplyText"):
-        lines.append("Списки отправлены на ТВ %s" % s["lastApplyText"])
-    lines.append("Программа передач: %s" % s.get("epgText", ""))
+        lines.append(tr("Списки отправлены на ТВ %s") % trs(s["lastApplyText"]))
+    lines.append(tr("Программа передач: %s") % trs(s.get("epgText", "")))
     problems = s.get("problems") or []
     if problems:
         lines.append("")
-        lines.append("Внимание:")
+        lines.append(tr("Внимание:"))
         for p in problems[:3]:
-            lines.append("• " + p)
+            lines.append("• " + trs(p))
     return "\n".join(lines)
 
 
@@ -176,15 +185,16 @@ class DreaminatorScreen(Screen):
     def __init__(self, session):
         Screen.__init__(self, session)
         self.setTitle("Dreaminator")
+        tr = ui_i18n.tr
         self["qr"] = Pixmap()
-        self["qrhint"] = Label("Наведите камеру планшета,\nчтобы открыть Dreaminator")
-        self["urllabel"] = Label("Адрес для планшета и компьютера:")
+        self["qrhint"] = Label(tr("Наведите камеру планшета,\nчтобы открыть Dreaminator"))
+        self["urllabel"] = Label(tr("Адрес для планшета и компьютера:"))
         self["url"] = Label("…")
-        self["status"] = Label("Подключаюсь к Dreaminator…")
-        self["key_red"] = Label("Закрыть")
-        self["key_green"] = Label("Отправить на ТВ")
-        self["key_yellow"] = Label("Обновить плейлисты")
-        self["key_blue"] = Label("Перезапустить")
+        self["status"] = Label(tr("Подключаюсь к Dreaminator…"))
+        self["key_red"] = Label(tr("Закрыть"))
+        self["key_green"] = Label(tr("Отправить на ТВ"))
+        self["key_yellow"] = Label(tr("Обновить плейлисты"))
+        self["key_blue"] = Label(tr("Перезапустить"))
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
             "ok": self.close,
             "cancel": self.close,
@@ -196,10 +206,24 @@ class DreaminatorScreen(Screen):
         self.busy = None
         self.closed = False
         self.qr_url = None
+        self.lang = ui_i18n.get_language()
         self.timer = eTimer()
         self.timer.callback.append(self.poll)
         self.onLayoutFinish.append(self.poll)
         self.onClose.append(self.cleanup)
+
+    def apply_language(self):
+        lang = ui_i18n.get_language()
+        if lang == self.lang:
+            return
+        self.lang = lang
+        tr = ui_i18n.tr
+        self["qrhint"].setText(tr("Наведите камеру планшета,\nчтобы открыть Dreaminator"))
+        self["urllabel"].setText(tr("Адрес для планшета и компьютера:"))
+        self["key_red"].setText(tr("Закрыть"))
+        self["key_green"].setText(tr("Отправить на ТВ"))
+        self["key_yellow"].setText(tr("Обновить плейлисты"))
+        self["key_blue"].setText(tr("Перезапустить"))
 
     def cleanup(self):
         self.closed = True
@@ -218,8 +242,10 @@ class DreaminatorScreen(Screen):
     def show_summary(self, s):
         if self.closed:
             return
+        ui_i18n.set_summary_language(s.get("language"))
+        self.apply_language()
         url = s.get("url") or ""
-        self["url"].setText(url or "нет адреса — проверьте сеть")
+        self["url"].setText(url or ui_i18n.tr("нет адреса — проверьте сеть"))
         if url and url != self.qr_url:
             self.load_qr(url)
         self["status"].setText(describe(s, self.busy))
@@ -228,9 +254,9 @@ class DreaminatorScreen(Screen):
     def unreachable(self, failure):
         if self.closed:
             return
-        self["status"].setText("Сервис Dreaminator не отвечает.\n"
-                               "Нажмите синюю кнопку, чтобы перезапустить его.\n\n"
-                               "Подробности для сына: %s" % error_text(failure))
+        self["status"].setText((ui_i18n.tr("Сервис Dreaminator не отвечает.\n"
+                                          "Нажмите синюю кнопку, чтобы перезапустить его.\n\n"
+                                          "Подробности для сына: %s")) % error_text(failure))
         self.later(5000)
 
     def load_qr(self, url):
@@ -268,21 +294,23 @@ class DreaminatorScreen(Screen):
         def fail(failure):
             self.busy = None
             if not self.closed:
-                self["status"].setText("Не получилось: %s" % error_text(failure))
+                self["status"].setText(ui_i18n.tr("Не получилось: %s") % error_text(failure))
                 self.later(8000)
 
         threads.deferToThread(api, path, True, timeout).addCallbacks(ok, fail)
 
     def apply(self):
-        self.run("Отправляю списки на ТВ…", "/api/apply", 90, "Готово! Списки обновлены на ТВ.")
+        self.run(ui_i18n.tr("Отправляю списки на ТВ…"), "/api/apply", 90,
+                 ui_i18n.tr("Готово! Списки обновлены на ТВ."))
 
     def refresh(self):
-        self.run("Обновляю плейлисты…", "/api/refresh-all", 10, "Обновляю плейлисты…")
+        self.run(ui_i18n.tr("Обновляю плейлисты…"), "/api/refresh-all", 10,
+                 ui_i18n.tr("Обновляю плейлисты…"))
 
     def restart(self):
         if self.busy:
             return
-        self.busy = "Перезапускаю сервис Dreaminator…"
+        self.busy = ui_i18n.tr("Перезапускаю сервис Dreaminator…")
         self["status"].setText(self.busy)
 
         def restarted(_):
@@ -305,7 +333,7 @@ def dev_reload():
     except ImportError:
         again = reload  # noqa: F821 (Python 2 builtin)
     # keymap.xml is not read again: long OK needs an Enigma2 restart.
-    for name in ("ui_theme", "ui_models", "ui_api", "ui_trace", "ui_library", "ui_images", "ui_widgets", "ui_dialogs", "ui_detail",
+    for name in ("ui_theme", "ui_models", "ui_api", "ui_i18n", "ui_trace", "ui_library", "ui_images", "ui_widgets", "ui_dialogs", "ui_detail",
                  "ui_guide", "ui_search", "ui_shell", "ui_epgkey", "ui_bouquet"):
         for prefix in (__name__.rpartition(".")[0] + ".", ""):
             module = sys.modules.get(prefix + name if prefix != "." else name)
@@ -354,7 +382,8 @@ def archive_session(reason, **kwargs):
 
 
 def Plugins(**kwargs):
-    description = "Каталог Stalker и управление IPTV с планшета"
+    tr = ui_i18n.tr
+    description = tr("Каталог Stalker и управление IPTV с планшета")
     entries = [
         PluginDescriptor(name="Dreaminator", description=description,
                          where=PluginDescriptor.WHERE_PLUGINMENU, icon="plugin.png", fnc=main),
@@ -363,7 +392,7 @@ def Plugins(**kwargs):
     ]
     where = getattr(PluginDescriptor, "WHERE_CHANNEL_CONTEXT_MENU", None)
     if where is not None:
-        entries.append(PluginDescriptor(name="Архив Dreaminator", description="Записи выбранного канала",
+        entries.append(PluginDescriptor(name=tr("Архив Dreaminator"), description=tr("Записи выбранного канала"),
                                         where=where, fnc=archive))
     else:
         entries.append(PluginDescriptor(where=PluginDescriptor.WHERE_SESSIONSTART, fnc=archive_session))

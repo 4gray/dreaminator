@@ -1540,5 +1540,120 @@ class EpgKeyTest(Base):
         self.assertEqual(self.infobar.calls, ["single"], "the entry runs Dreaminator's EPG key")
 
 
+class I18nTests(Base):
+    EXPECTED_LANGS = ("ru", "pt", "fr", "he", "ar", "it", "de", "es", "pl", "en", "ja", "zh", "th", "tr", "cs")
+
+    def tearDown(self):
+        import ui_i18n
+        ui_i18n.set_language(None)
+        ui_i18n.set_summary_language(None)
+        super(I18nTests, self).tearDown()
+
+    def test_supported_languages_and_dictionary_completeness(self):
+        import re
+        import ui_i18n
+        self.assertEqual(set(ui_i18n.SUPPORTED), set(self.EXPECTED_LANGS))
+        self.assertEqual(len(ui_i18n.SUPPORTED), 15)
+
+        fmt_re = re.compile(r"%(?:\([^)]+\))?[#0\- +]*\d*(?:\.\d+)?[sdifuxXo]")
+        targets = [c for c in self.EXPECTED_LANGS if c != "ru"]
+        for key, table in ui_i18n.TRANSLATIONS.items():
+            want_specs = fmt_re.findall(key)
+            for code in targets:
+                self.assertIn(code, table, "missing %s for key %r" % (code, key))
+                val = table[code]
+                if not (code == "en" and u"TMDB API" in key and u"одобрен" in key):
+                    self.assertTrue(bool(val), "empty %s translation for %r" % (code, key))
+                self.assertEqual(fmt_re.findall(val), want_specs, "format specifier mismatch %s for %r" % (code, key))
+
+        for raw, want in (("fr-FR", "fr"), ("pt_BR", "pt"), ("iw", "he"), ("he-IL", "he"),
+                          ("cz", "cs"), ("cs-CZ", "cs"), ("jp", "ja"), ("ja-JP", "ja"),
+                          ("auto", ""), ("unknown", "")):
+            self.assertEqual(ui_i18n.normalize_lang(raw), want)
+
+    def test_formatting_helpers_across_all_languages(self):
+        import ui_i18n
+        import ui_library
+        for code in self.EXPECTED_LANGS:
+            dur = ui_i18n.duration_text(95, code)
+            self.assertTrue(dur and "1" in dur and "35" in dur, (code, dur))
+            days = ui_i18n.days_text(3, code)
+            self.assertIn("3", days)
+            self.assertTrue(ui_i18n.day_label(0, "2026-10-05", code))
+            self.assertTrue(ui_i18n.day_label(2, "2026-10-07", code))
+            t1, h1 = ui_i18n.favorite_message({"name": u"Фильм"}, {"fav": True}, ui_library.name_of, code)
+            self.assertTrue(t1 and h1, (code, t1, h1))
+            t2, h2 = ui_i18n.missing_message({"name": u"Канал"}, ui_library.name_of, code)
+            self.assertTrue(t2 and h2, (code, t2, h2))
+
+        self.assertEqual(ui_i18n.tr_server(u"Все каналы", "fr"), "Toutes les chaînes")
+        self.assertEqual(ui_i18n.tr_server(u"только что", "en"), "just now")
+        self.assertEqual(ui_i18n.tr_server(u"5 мин назад", "fr"), "il y a 5 min")
+        self.assertEqual(ui_i18n.tr_server(u"есть у 10 из 20 каналов, обновлена сегодня в 12:30", "en"),
+                         "10 of 20 channels, updated today at 12:30")
+
+    def test_screens_render_translated_ui_and_fit_bounds(self):
+        import plugin
+        import ui_detail
+        import ui_dialogs
+        import ui_guide
+        import ui_i18n
+        import ui_shell
+
+        orig_defer = plugin.threads.deferToThread
+        plugin.threads.deferToThread = self.queue.defer
+        try:
+            ui_i18n.set_language("fr")
+            for width in (1280, 1920):
+                harness.check_bounds(ui_shell.build_skin(width)[1])
+                harness.check_bounds(ui_detail.build_skin(width, True)[1])
+                harness.check_bounds(ui_dialogs.about_skin(width)[1])
+                harness.check_bounds(ui_guide.build_skin(width, True)[1])
+
+            shell = ui_shell.Shell(self.session)
+            harness.layout(shell)
+            try:
+                self.assertEqual(shell["msg"].getText(), "Chargement…")
+                self.assertEqual(shell["rail_label_%d" % ui_shell.RAIL_KEYS.index("vod")].getText(), "Films")
+                self.assertEqual(shell.search.kb.layout, "en")
+            finally:
+                shell.close()
+
+            item = {"key": "m1", "name": u"Film", "kind": "movie"}
+            detail = ui_detail.DetailScreen(self.session, {"id": "p1", "name": "Portal", "section": "vod"}, item, "Films")
+            harness.layout(detail)
+            try:
+                self.assertEqual(detail["a_0"].getText(), "Regarder")
+                self.assertEqual(detail["a_1"].getText(), "Résumé")
+            finally:
+                detail.close()
+
+            guide = ui_guide.GuideScreen(self.session, {"id": "p1", "name": "Portal"}, {"key": "c1", "name": "Ch1"}, "Live TV")
+            harness.layout(guide)
+            try:
+                self.assertEqual(guide["msg"].getText(), "Chargement…")
+            finally:
+                guide.close()
+
+            about = ui_dialogs.AboutScreen(self.session)
+            harness.layout(about)
+            try:
+                self.assertEqual(about["tmdb"].getText(), "Vérification des paramètres…")
+            finally:
+                about.close()
+
+            dream = plugin.DreaminatorScreen(self.session)
+            harness.layout(dream)
+            try:
+                self.assertEqual(dream["key_red"].getText(), "Fermer")
+                ui_i18n.set_language(None)
+                dream.show_summary({"sources": 1, "channels": 5, "language": "pt"})
+                self.assertEqual(dream["key_red"].getText(), "Fechar")
+            finally:
+                dream.close()
+        finally:
+            plugin.threads.deferToThread = orig_defer
+
+
 if __name__ == "__main__":
     unittest.main()

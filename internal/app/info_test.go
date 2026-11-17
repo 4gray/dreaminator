@@ -81,3 +81,53 @@ func TestSummary(t *testing.T) {
 		}
 	}
 }
+
+func TestLanguageSettings(t *testing.T) {
+	cases := map[string]string{
+		"pt-BR": "pt", "fr-FR": "fr", "he-IL": "he", "iw": "he", "ar-SA": "ar",
+		"it-IT": "it", "de-DE": "de", "es-ES": "es", "pl-PL": "pl", "en-GB": "en",
+		"ja-JP": "ja", "jp": "ja", "zh-CN": "zh", "th-TH": "th", "tr-TR": "tr",
+		"cs-CZ": "cs", "cz": "cs", "ru-RU": "ru", "auto": "", "unknown": "",
+	}
+	for input, want := range cases {
+		if got := NormalizeLanguage(input); got != want {
+			t.Errorf("NormalizeLanguage(%q) = %q, want %q", input, got, want)
+		}
+	}
+
+	dir := t.TempDir()
+	defaults := DefaultSettings()
+	defaults.WebifURL = ""
+	a, err := New(Config{DataDir: dir, E2Dir: filepath.Join(dir, "e2"), EPGImportDir: filepath.Join(dir, "epg"), Port: "8088"},
+		defaults, log.New(io.Discard, "", 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SetLanguage("fr-FR"); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.View().Settings.Language; got != "fr" {
+		t.Fatalf("View().Settings.Language = %q, want fr", got)
+	}
+	if got := a.Summary().Language; got != "fr" {
+		t.Fatalf("Summary().Language = %q, want fr", got)
+	}
+	// UpdateSettings without Language keeps previous Language.
+	keep := a.View().Settings
+	keep.Language = ""
+	if err := a.UpdateSettings(keep); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.View().Settings.Language; got != "fr" {
+		t.Fatalf("UpdateSettings cleared language unexpectedly: %q", got)
+	}
+	// UpdateSettings with "auto" resets Language to "".
+	clearLang := a.View().Settings
+	clearLang.Language = "auto"
+	if err := a.UpdateSettings(clearLang); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.View().Settings.Language; got != "" {
+		t.Fatalf("UpdateSettings(auto) left language = %q", got)
+	}
+}

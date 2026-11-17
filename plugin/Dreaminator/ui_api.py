@@ -133,6 +133,10 @@ class Problem(object):
 
 
 def problem(failure):
+    try:
+        from . import ui_i18n
+    except (ImportError, ValueError):
+        import ui_i18n
     err = getattr(failure, "value", failure)
     if isinstance(err, HTTPError):
         message, kind = "", ""
@@ -149,8 +153,9 @@ def problem(failure):
             kind = kind or "input"
         else:
             kind = kind or "provider"
-        return Problem(kind, text(native(message)) or "Ошибка %d" % err.code)
+        msg = ui_i18n.tr_server(text(native(message))) if message else (ui_i18n.tr("Ошибка %d") % err.code)
+        return Problem(kind, msg or (ui_i18n.tr("Ошибка %d") % err.code))
     if isinstance(err, (URLError, IOError, OSError)):
-        return Problem("service", "Сервис Dreaminator не отвечает")
+        return Problem("service", ui_i18n.tr("Сервис Dreaminator не отвечает"))
     # Never show exception text: it may carry addresses with tokens.
-    return Problem("internal", "Не удалось обработать ответ сервиса")
+    return Problem("internal", ui_i18n.tr("Не удалось обработать ответ сервиса"))

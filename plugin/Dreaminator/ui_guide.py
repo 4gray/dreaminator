@@ -24,12 +24,13 @@ from Components.ProgressBar import ProgressBar
 from Screens.Screen import Screen
 
 try:
-    from . import ui_api, ui_library, ui_theme as T
+    from . import ui_api, ui_i18n, ui_library, ui_theme as T
     from .catalog_state import playback_url, service_type
     from .ui_models import MOVED, ListModel
     from .ui_widgets import WidgetState, clipped, color, days_text, font, hhmm, length_text, move, on_air, progress, span_text, visible
 except (ImportError, ValueError):
     import ui_api
+    import ui_i18n
     import ui_library
     import ui_theme as T
     from catalog_state import playback_url, service_type
@@ -47,14 +48,7 @@ RELATIVE = {-1: "Вчера", 0: "Сегодня", 1: "Завтра"}
 
 def day_label(offset, date):
     """'Сегодня, понедельник, 5 октября' or 'Среда, 7 октября'."""
-    try:
-        y, m, d = [int(x) for x in ui_api.text(date).split("-")]
-        weekday = datetime.date(y, m, d).weekday()
-    except (ValueError, TypeError, AttributeError):
-        return RELATIVE.get(offset, "")
-    if offset in RELATIVE:
-        return "%s, %s, %d %s" % (RELATIVE[offset], WEEKDAYS[weekday], d, MONTHS[m - 1])
-    return "%s, %d %s" % (WEEKDAYS_CAP[weekday], d, MONTHS[m - 1])
+    return ui_i18n.day_label(offset, date)
 
 
 def day_of(t):
@@ -106,9 +100,9 @@ class GuideScreen(Screen):
     skin = SKIN_XML
 
     def __init__(self, session, source, item, crumbs, start=None, archive_only=False):
+        self.s, self.skin = build_skin(getDesktop(0).size().width(), _plugin().FONTS_READY)
         Screen.__init__(self, session)
         self.setTitle("Dreaminator")
-        self.s = SKIN
         self.source = source
         self.item = dict(item)
         self.crumbs = crumbs
@@ -179,7 +173,7 @@ class GuideScreen(Screen):
         self.programmes = []
         self.model = ListModel(G["rows"])
         self.render()
-        self.show_message("Загрузка…")
+        self.show_message(ui_i18n.tr("Загрузка…"))
         path = ui_api.catalog_path(self.source["id"], "epg", key=self.item["key"], id=self.item.get("id"), day=day,
                                    tz=ui_api.tz_minutes())
 
@@ -226,17 +220,17 @@ class GuideScreen(Screen):
         self.render()
         if not self.programmes:
             if not self.days:
-                self.show_message("Нет программы", "Источник не знает, что идёт на этом канале")
+                self.show_message(ui_i18n.tr("Нет программы"), ui_i18n.tr("Источник не знает, что идёт на этом канале"))
             else:
-                self.show_message("На этот день программы нет", "‹ › или CH± — другие дни")
+                self.show_message(ui_i18n.tr("На этот день программы нет"), ui_i18n.tr("‹ › или CH± — другие дни"))
 
     def load_failed(self, problem):
         self.state = "error"
         self.render()
         if problem.kind == "expired":
-            self.show_message("Список каналов обновился", "Back — вернуться к списку")
+            self.show_message(ui_i18n.tr("Список каналов обновился"), ui_i18n.tr("Back — вернуться к списку"))
         else:
-            self.show_message("Программа не загрузилась", "Жёлтая — повторить")
+            self.show_message(ui_i18n.tr("Программа не загрузилась"), ui_i18n.tr("Жёлтая — повторить"))
 
     def recorded(self, p, t):
         """The service's rule (rec), worked out again for now: a guide left
@@ -275,9 +269,9 @@ class GuideScreen(Screen):
 
     def render(self):
         t = time.time()
-        self["day"].setText(day_label(self.day, self.date) if self.date else RELATIVE.get(self.day, ""))
+        self["day"].setText(day_label(self.day, self.date) if self.date else ui_i18n.relative_day(self.day))
         others = [d for d in self.days if d != self.day]
-        self["days_hint"].setText("‹ › или CH± — другие дни" if others else "")
+        self["days_hint"].setText(ui_i18n.tr("‹ › или CH± — другие дни") if others else "")
         m = self.model
         count = len(self.programmes)
         slot = m.focus - m.top if count else None
@@ -320,16 +314,17 @@ class GuideScreen(Screen):
                 font(self, self.s, name, 26, semi)
 
     def render_hint(self, p, t):
-        days = "‹ › или CH± — дни"
+        tr = ui_i18n.tr
+        days = tr("‹ › или CH± — дни")
         if p is not None and self.recorded(p, t) and int(p.get("stop") or 0) <= t:
-            text = "OK — смотреть запись · " + days + " · Back — назад"
+            text = tr("OK — смотреть запись · ") + days + tr(" · Back — назад")
         elif p is not None and self.recorded(p, t) and on_air(p, t):
-            action = "OK — с начала" if self.archive_only else "OK — смотреть канал · Красная — с начала"
-            text = action + " · " + days + " · Back — назад"
+            action = tr("OK — с начала") if self.archive_only else tr("OK — смотреть канал · Красная — с начала")
+            text = action + " · " + days + tr(" · Back — назад")
         elif self.archive_only:
-            text = "↑↓ — передачи · " + days + " · Back — назад"
+            text = tr("↑↓ — передачи · ") + days + tr(" · Back — назад")
         else:
-            text = "↑↓ — передачи · " + days + " · OK — смотреть канал · Back — назад"
+            text = tr("↑↓ — передачи · ") + days + tr(" · OK — смотреть канал · Back — назад")
         self.w.text("hint", text)
 
     def render_details(self, p, t):
@@ -344,9 +339,9 @@ class GuideScreen(Screen):
         if length:
             when += " · " + length
         if air:
-            when = "Сейчас · " + when
+            when = ui_i18n.tr("Сейчас · ") + when
         elif int(p.get("stop") or 0) <= t and self.archive:
-            when = ("Запись · " if self.recorded(p, t) else "Нет в архиве · ") + when
+            when = (ui_i18n.tr("Запись · ") if self.recorded(p, t) else ui_i18n.tr("Нет в архиве · ")) + when
         self["d_time"].setText(when)
         color(self, "d_time", T.ACCENT if air else T.MUTED)
         self["d_title"].setText(clipped(p.get("title"), 90))
@@ -385,7 +380,7 @@ class GuideScreen(Screen):
                     target = nearest
         # Past the last day the source knows nothing: stay, and say so.
         if self.state == "ready" and (not self.days or not min(self.days) <= target <= max(self.days)):
-            self["days_hint"].setText("Дальше программы нет" if delta > 0 else "Раньше программы нет")
+            self["days_hint"].setText(ui_i18n.tr("Дальше программы нет") if delta > 0 else ui_i18n.tr("Раньше программы нет"))
             return
         self.load(target)
 
@@ -397,13 +392,14 @@ class GuideScreen(Screen):
     def key_ok(self):
         p, t = self.focused(), time.time()
         if self.archive_only and p is not None and int(p.get("start") or 0) > t:
-            self.show_notice("Эта передача ещё не началась")
+            self.show_notice(ui_i18n.tr("Эта передача ещё не началась"))
             return
         if p is not None and (self.archive_only or int(p.get("stop") or 0) <= t) and self.archive:
             if self.recorded(p, t):
                 self.play_recording(p)
             else:
-                self.show_notice("Этой передачи нет в архиве", "Провайдер хранит записи %s" % days_text(self.archive))
+                self.show_notice(ui_i18n.tr("Этой передачи нет в архиве"),
+                                 ui_i18n.tr("Провайдер хранит записи %s") % days_text(self.archive))
             return
         self.close("play")
 
@@ -421,7 +417,7 @@ class GuideScreen(Screen):
         if self.playing:
             return  # a second OK must not mint a second link
         self.playing = True
-        self.show_message("Подготавливаю запись…")
+        self.show_message(ui_i18n.tr("Подготавливаю запись…"))
         generation = self.generation
         body = dict(ui_library.entry(self.item), start=int(p.get("start") or 0))
         path = ui_api.catalog_path(self.source["id"], "play")
@@ -436,7 +432,8 @@ class GuideScreen(Screen):
             self.playing = False
             if not self.closed and generation == self.generation:
                 problem = ui_api.problem(failure)
-                self.show_notice(problem.message, "Жёлтая — обновить программу" if problem.kind == "archive" else "")
+                self.show_notice(ui_i18n.tr_server(problem.message),
+                                 ui_i18n.tr("Жёлтая — обновить программу") if problem.kind == "archive" else "")
 
         threads.deferToThread(ui_api.request_json, path, body, 35, True).addCallbacks(done, failed)
 
@@ -453,7 +450,7 @@ class GuideScreen(Screen):
             self.session.openWithCallback(self.player_closed, CatalogPlayer, ref)
         except Exception:
             self.playing = False
-            self.show_notice("Не удалось открыть проигрыватель", "OK — попробовать снова")
+            self.show_notice(ui_i18n.tr("Не удалось открыть проигрыватель"), ui_i18n.tr("OK — попробовать снова"))
 
     def player_closed(self, *args):
         self.playing = False
@@ -461,5 +458,6 @@ class GuideScreen(Screen):
             return
         self.render()
         if args and args[0] == "failed":
-            self.show_notice("Запись не отвечает", "Провайдер не отдал запись — попробуйте позже")
+            self.show_notice(ui_i18n.tr("Запись не отвечает"),
+                             ui_i18n.tr("Провайдер не отдал запись — попробуйте позже"))
 

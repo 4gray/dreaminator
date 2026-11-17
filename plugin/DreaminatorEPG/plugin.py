@@ -25,9 +25,11 @@ def epg(session, service=None, event=None, **kwargs):
 
 def Plugins(**kwargs):
     try:
-        from Plugins.Extensions.Dreaminator import ui_epgkey
+        from Plugins.Extensions.Dreaminator import ui_epgkey, ui_i18n
     except ImportError:
         import ui_epgkey
+        import ui_i18n
     ui_epgkey.register_config()
-    return [PluginDescriptor(name=ui_epgkey.NAME, description="Прошедшие передачи из архива провайдера",
+    return [PluginDescriptor(name=ui_i18n.tr(ui_epgkey.NAME),
+                             description=ui_i18n.tr("Прошедшие передачи из архива провайдера"),
                              where=PluginDescriptor.WHERE_EVENTINFO, fnc=epg)]
