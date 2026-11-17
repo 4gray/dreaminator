@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (defaults to v<VERSION> from Makefile)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -12,17 +18,28 @@ jobs:
     name: Validate release tag
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Match tag, source version and release notes
+      - id: resolve
+        name: Match tag, source version and release notes
         env:
-          TAG: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
           version=$(sed -n 's/^VERSION ?= //p' Makefile)
-          test "$TAG" = "v$version"
-          test -s "docs/releases/$TAG.md"
+          if [ "$EVENT_NAME" = "push" ]; then
+            tag="$REF_NAME"
+          else
+            tag="${INPUT_TAG:-v$version}"
+          fi
+          test "$tag" = "v$version"
+          test -s "docs/releases/$tag.md"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
   ci:
     needs: version
@@ -30,7 +47,7 @@ jobs:
 
   publish:
     name: Publish verified packages
-    needs: ci
+    needs: [version, ci]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -48,15 +65,16 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.version.outputs.tag }}
+          TARGET_SHA: ${{ github.sha }}
         run: |
-          if draft=$(gh release view "$TAG" --json isDraft --jq '.isDraft'); then
+          if draft=$(gh release view "$TAG" --json isDraft --jq '.isDraft' 2>/dev/null); then
             test "$draft" = true  # Never replace an already published release.
             gh release upload "$TAG" dist/release/* --clobber
             gh release edit "$TAG" --draft=false --latest \
               --title "Dreaminator ${TAG#v}" --notes-file "docs/releases/$TAG.md"
           else
             gh release create "$TAG" dist/release/* \
-              --verify-tag --latest --title "Dreaminator ${TAG#v}" \
+              --target "$TARGET_SHA" --latest --title "Dreaminator ${TAG#v}" \
               --notes-file "docs/releases/$TAG.md"
           fi
