@@ -1,4 +1,4 @@
-VERSION ?= 0.12.0
+VERSION ?= 0.12.1
 HOST    ?= dm520.fritz.box
 # Old Dreambox images ship an old Dropbear that only speaks ssh-rsa.
 SSH_OPTS ?= -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o StrictHostKeyChecking=accept-new

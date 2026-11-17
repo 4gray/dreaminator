@@ -39,6 +39,7 @@ def check(arch, machine):
     control = files(ar['control.tar.gz'])['control'].decode()
     assert '\nVersion: %s\n' % VERSION in control
     assert '\nArchitecture: %s\n' % arch in control
+    assert '\nDepends: enigma2-plugin-extensions-epgimport\n' in control
     data = files(ar['data.tar.gz'])
     binary = data['usr/bin/dreaminator']
     assert binary[:6] == b'\x7fELF\x01\x01', 'expected little-endian ELF32'

@@ -2,6 +2,18 @@
 
 All notable changes to Dreaminator are documented in this file.
 
+## [0.12.1] - 2026-11-17
+
+### Changed
+- **English `opkg` installer & package metadata**: Translated the `postinst` shell output and IPK `control` description in `tools/mkipk/main.go` to English (`Dreaminator installed. Open in your browser: ...`).
+
+### Added
+- **Automatic EPGImport dependency**: Added `Depends: enigma2-plugin-extensions-epgimport` to the IPK `control` metadata in `tools/mkipk/main.go` (and verified in `tools/check_packages.py`) so `opkg` automatically installs `enigma2-plugin-extensions-epgimport` alongside Dreaminator.
+
+### Packages
+- **MIPS (Dreambox DM520 / OpenHDF)**: `dreaminator_0.12.1_all.ipk`
+- **ARMv7 (Vu+ Uno 4K SE / openATV)**: `dreaminator_0.12.1_vuuno4kse.ipk`
+
 ## [0.12.0] - 2026-11-17
 
 ### Added
