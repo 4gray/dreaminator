@@ -2,6 +2,20 @@
 
 All notable changes to Dreaminator are documented in this file.
 
+## [0.12.2] - 2026-11-17
+
+### Added
+- **Detailed non-technical EPG-Importer guide in Web App** (`web/static/app.js`, `web/static/i18n.js`): Expanded the EPG setup card in **Settings** (`open` by default) with 5 clear, color-coded remote steps in all 15 languages, including the Vu+ / openATV path (**Menu → Setup → EPG → EPG-Importer**), manual import (**Yellow**), and daily auto-import.
+
+### Fixed
+- **Full localization of server-generated dates, subscriptions & errors**:
+  - Updated `trServer` in `web/static/i18n.js` and `web/static/app.js` to translate subscription expiry dates (`"до 31 декабря 2027"`, `"«Portal» до …"`, `"без срока"`, `"неактивна"`), source reachability checks, stream probe warnings (GStreamer 4097 notice, portal URL errors), and validation/EPG/Picons/TMDB errors.
+  - Updated `tr_server` and `_tr_ru_when` in `plugin/Dreaminator/ui_i18n.py` to translate full dates (`"15 ноября в 04:00"`), subscription expiry dates, and `"без срока"` on the Enigma2 TV screen across all 15 languages.
+
+### Packages
+- **MIPS (Dreambox DM520 / OpenHDF)**: `dreaminator_0.12.2_all.ipk`
+- **ARMv7 (Vu+ Uno 4K SE / openATV)**: `dreaminator_0.12.2_vuuno4kse.ipk`
+
 ## [0.12.1] - 2026-11-17
 
 ### Changed
