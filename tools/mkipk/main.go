@@ -35,8 +35,8 @@ update-rc.d dreaminator defaults 95 >/dev/null 2>&1 || true
 /etc/init.d/dreaminator restart
 IP=$(ip -4 addr show eth0 2>/dev/null | sed -n 's/.*inet \([0-9.]*\).*/\1/p' | head -n1)
 echo ""
-echo "Dreaminator установлен. Откройте на планшете: http://${IP:-<адрес ресивера>}:8088"
-echo "После перезапуска интерфейса адрес и QR-код будут в меню «Плагины» → Dreaminator."
+echo "Dreaminator installed. Open in your browser: http://${IP:-<receiver-ip>}:8088"
+echo "After restarting the Enigma2 GUI, the address and QR code are in Plugins -> Dreaminator."
 exit 0
 `
 
@@ -81,7 +81,8 @@ Architecture: %s
 Maintainer: Dreaminator
 Section: extra
 Priority: optional
-Description: Плейлисты IPTV и избранное для Enigma2 с планшета (веб-интерфейс на порту 8088)
+Depends: enigma2-plugin-extensions-epgimport
+Description: IPTV playlists, TV catalog and favorites for Enigma2 (web interface on port 8088)
 `, *version, *arch)
 
 	controlTar := tarGz([]entry{

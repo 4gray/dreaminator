@@ -52,7 +52,7 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
     bouquets: [{ id: 'demo-favorites', name: 'Избранное', channels: refs },
       { id: 'demo-empty', name: 'Для тихого вечера — новые открытия', channels: [] },
       { id: 'demo-missing', name: 'Недоступные каналы', channels: [{ source: 'demo-source', id: 'demo-removed', name: 'Забытый сад — недоступный канал' }] }],
-    settings: { serviceType: 4097, streamFormat: 'ts', refreshHour: -1, bouquetsOnTop: true, webifUrl: '', picons: false },
+    settings: { serviceType: 4097, streamFormat: 'ts', refreshHour: -1, bouquetsOnTop: true, webifUrl: '', picons: false, language: 'ru' },
     dirty: false, epg: {}, picons: {},
   };
   await mkdir(join(dir, 'data/channels'), { recursive: true });
@@ -78,6 +78,7 @@ test('channel names and actions remain usable across viewport sizes', { skip: !b
   });
 
   await browser('open', `${base}/#/lists/demo-favorites`);
+  await evaluate("localStorage.setItem('lang', 'ru')");
   await browser('set', 'media', 'light');
   const open = async (path, selector) => {
     await browser('open', `${base}/#/${path}`);

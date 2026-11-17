@@ -93,6 +93,7 @@ func (a *App) TabletURLs() []string {
 // plugin, which runs inside Enigma2, stays as simple as possible.
 type Summary struct {
 	Version         string   `json:"version"`
+	Language        string   `json:"language,omitempty"`
 	URL             string   `json:"url"`
 	URLs            []string `json:"urls"`
 	Sources         int      `json:"sources"`
@@ -139,6 +140,7 @@ func (a *App) Summary() Summary {
 	now := time.Now()
 	s := Summary{
 		Version:        a.cfg.Version,
+		Language:       a.st.Settings.Language,
 		URLs:           urls,
 		Sources:        len(a.st.Sources),
 		Bouquets:       len(a.st.Bouquets),

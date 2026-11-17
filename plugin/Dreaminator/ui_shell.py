@@ -20,7 +20,7 @@ from Components.Pixmap import Pixmap
 from Screens.Screen import Screen
 
 try:
-    from . import ui_api, ui_library, ui_theme as T, ui_trace
+    from . import ui_api, ui_i18n, ui_library, ui_theme as T, ui_trace
     from .ui_images import ImageLoader
     from .ui_models import EDGE_LEFT, MOVED, ListModel
     from .ui_search import SearchPanel
@@ -28,6 +28,7 @@ try:
     from .catalog_state import playback_url, service_type
 except (ImportError, ValueError):
     import ui_api
+    import ui_i18n
     import ui_library
     import ui_theme as T
     import ui_trace
@@ -113,7 +114,7 @@ def build_skin(width):
         if kind == "red":
             b.append(s.label("hint_red", x, 104, width + 8, 36, 22, T.TEXT_2))
         else:
-            b.append(s.text(x, 104, width + 8, 36, label, 22, T.TEXT_2))
+            b.append(s.text(x, 104, width + 8, 36, ui_i18n.tr(label), 22, T.TEXT_2))
         if kind == "kbd":
             x -= 62
             b.append('<eLabel position="%s" size="%s" font="%s" foregroundColor="%s" backgroundColor="%s" borderWidth="2" borderColor="%s" '
@@ -157,9 +158,9 @@ class Shell(Screen):
     skin = SKIN_XML
 
     def __init__(self, session):
+        self.s, self.skin = build_skin(getDesktop(0).size().width())
         Screen.__init__(self, session)
         self.setTitle("Dreaminator")
-        self.s = SKIN
         self.images = ImageLoader(budget=10 << 20)
         self.closed = False
         self.playing = False
@@ -191,12 +192,12 @@ class Shell(Screen):
         self["rail_panel"] = Label("")
         self["rail_shadow"] = Pixmap()
         self["rail_brand"] = Label("Dreaminator")
-        self["rail_brand_sub"] = Label("каталог на телевизоре")
+        self["rail_brand_sub"] = Label(ui_i18n.tr("каталог на телевизоре"))
         for name in ("rail_active_s", "rail_active_w", "rail_focus_s", "rail_focus_w"):
             self[name] = Pixmap()
         for i, (key, label, y) in enumerate(T.RAIL_ITEMS):
             self["rail_icon_%d" % i] = Pixmap()
-            self["rail_label_%d" % i] = Label(label)
+            self["rail_label_%d" % i] = Label(ui_i18n.tr(label))
         for name in ("context", "title", "meta", "hint_red", "cat_track", "cat_thumb", "msg", "msg2", "toast", "toast_text",
                      "toast_hint"):
             self[name] = Label("")
@@ -398,7 +399,7 @@ class Shell(Screen):
         self.grid.clear()
         self.render_rail()
         self.update_subtitle()
-        self.show_message("Загрузка…")
+        self.show_message(ui_i18n.tr("Загрузка…"))
         self.api("/api/catalog/sources", self.sources_loaded, self.sources_failed)
 
     def sources_loaded(self, sources):
@@ -412,14 +413,14 @@ class Shell(Screen):
 
     def sources_failed(self, problem):
         self.cats_state = "error"
-        self.show_message(problem.message, "Жёлтая — повторить · Back — назад")
+        self.show_message(ui_i18n.tr_server(problem.message), ui_i18n.tr("Жёлтая — повторить · Back — назад"))
 
     def use_source(self, source, browse=False):
         """browse: the viewer picked the source, so show its lists even when
         Favorites or Recents were on screen."""
         self.source = source
         LAST_PLACE["source"] = source.get("id")
-        self["rail_label_%d" % RAIL_KEYS.index("portal")].setText(ui_api.text(source.get("name") or "Портал"))
+        self["rail_label_%d" % RAIL_KEYS.index("portal")].setText(ui_api.text(source.get("name") or ui_i18n.tr("Портал")))
         self.layout_rail()
         self.search.source_changed()
         section = self.section
@@ -488,7 +489,7 @@ class Shell(Screen):
         self.cats_state = "loading"
         self.content().reset(self.source_id())
         self.render_cats()
-        self.show_message("Загрузка…")
+        self.show_message(ui_i18n.tr("Загрузка…"))
         self.update_subtitle()
         if section in LIBRARY:
             # Both views start empty: films may come first, and a previous
@@ -508,7 +509,7 @@ class Shell(Screen):
         self.cats_state = "ready"
         self.zone = "cats" if self.zone != "rail" else "rail"
         self.render_cats()
-        self.show_message(*ui_library.EMPTY[self.section])
+        self.show_message(*ui_library.empty_message(self.section))
 
     def categories_loaded(self, cats):
         self.categories = cats or []
@@ -519,21 +520,21 @@ class Shell(Screen):
             self.zone = "cats" if self.zone != "rail" else "rail"
             self.render_cats()
             if self.section == "series":
-                self.show_message("На портале нет отдельного раздела сериалов",
-                                  "Сериалы этого портала — в «Фильмах», с пометкой «Сериал»")
+                self.show_message(ui_i18n.tr("На портале нет отдельного раздела сериалов"),
+                                  ui_i18n.tr("Сериалы этого портала — в «Фильмах», с пометкой «Сериал»"))
             elif self.section == "live" and not self.has("vod"):
-                self.show_message("В плейлисте нет каналов", "Жёлтая — загрузить плейлист заново")
+                self.show_message(ui_i18n.tr("В плейлисте нет каналов"), ui_i18n.tr("Жёлтая — загрузить плейлист заново"))
             elif self.section == "live":
-                self.show_message("На портале нет телеканалов", "Каталог фильмов и сериалов доступен в других разделах")
+                self.show_message(ui_i18n.tr("На портале нет телеканалов"), ui_i18n.tr("Каталог фильмов и сериалов доступен в других разделах"))
             else:
-                self.show_message("Портал не отдал категории", "Жёлтая — повторить")
+                self.show_message(ui_i18n.tr("Портал не отдал категории"), ui_i18n.tr("Жёлтая — повторить"))
             return
         self.load_category(0)
 
     def categories_failed(self, problem):
         self.cats_state = "error"
         self.render_cats()
-        self.show_message(problem.message, "Жёлтая — повторить")
+        self.show_message(ui_i18n.tr_server(problem.message), ui_i18n.tr("Жёлтая — повторить"))
 
     def sort(self):
         return SORT_MEMORY.get(self.section, "added") if self.section in ("vod", "series") else ""
@@ -552,7 +553,7 @@ class Shell(Screen):
             before.clear()  # Favorites: channels are a list, films a grid
         self.content().reset(self.source_id(), self.positions.get(self.category_key()))
         self.render_cats()
-        self.show_message("Загрузка…")
+        self.show_message(ui_i18n.tr("Загрузка…"))
         self.update_subtitle()
         self.ensure_pages()
 
@@ -587,8 +588,8 @@ class Shell(Screen):
         def fail(problem):
             view.listing.fail(n, problem)
             if not view.count():
-                hint = "Жёлтая — повторить"
-                text = "Нет связи с порталом" if problem.kind == "network" else problem.message
+                hint = ui_i18n.tr("Жёлтая — повторить")
+                text = ui_i18n.tr("Нет связи с порталом") if problem.kind == "network" else ui_i18n.tr_server(problem.message)
                 self.show_message(text, hint)
 
         self.api(path, ok, fail)
@@ -597,7 +598,7 @@ class Shell(Screen):
         view.listing.store(n, result)
         count = view.count()
         if not count:
-            self.show_message("В этой категории пока пусто")
+            self.show_message(ui_i18n.tr("В этой категории пока пусто"))
             view.render(True, False)
             return
         self.hide_message()
@@ -658,14 +659,15 @@ class Shell(Screen):
             index = m.top + i
             name = "cat_%d" % i
             if index < count:
-                self[name].setText(ui_api.text(T.clip(ui_api.unicode_text(self.categories[index].get("name", "")), 22)))
+                cat_name = ui_i18n.tr_server(self.categories[index].get("name", ""))
+                self[name].setText(ui_api.text(T.clip(ui_api.unicode_text(cat_name), 22)))
                 focused = self.zone == "cats" and index == m.focus
                 color(self, name, T.ON_ACCENT if focused else (T.ACCENT if index == self.cat_active else T.TEXT_2))
                 font(self, self.s, name, 26, focused)
             else:
                 self[name].setText("")
         if self.cats_state == "loading" and not count:
-            self["cat_0"].setText("Загрузка…")
+            self["cat_0"].setText(ui_i18n.tr("Загрузка…"))
             color(self, "cat_0", T.MUTED)
         if count and self.zone == "cats" and m.top <= m.focus < m.top + c["rows"]:
             move(self, self.s, "cat_focus", c["x"], c["y"] + (m.focus - m.top) * c["row"])
@@ -694,13 +696,14 @@ class Shell(Screen):
         if self.source and not self.library():
             parts.append(ui_api.text(self.source.get("name", "")))
         if self.section == "search":
-            parts.append("Поиск в разделе «%s»" % SECTION_TITLE[self.search.scope])
+            parts.append(ui_i18n.tr("Поиск в разделе «%s»") % ui_i18n.tr(SECTION_TITLE[self.search.scope]))
         else:
-            parts.append(SECTION_TITLE[self.section])
+            parts.append(ui_i18n.tr(SECTION_TITLE[self.section]))
             if self.categories:
-                parts.append(ui_api.text(T.clip(ui_api.unicode_text(self.categories[self.cat_active].get("name", "")), 24)))
+                cat_name = ui_i18n.tr_server(self.categories[self.cat_active].get("name", ""))
+                parts.append(ui_api.text(T.clip(ui_api.unicode_text(cat_name), 24)))
             if self.sort():
-                parts.append(SORT_CONTEXT[self.sort()])
+                parts.append(ui_i18n.tr(SORT_CONTEXT[self.sort()]))
             view = self.content()
             count = view.count()
             if count:
@@ -708,10 +711,10 @@ class Shell(Screen):
                 first = m.first_visible() + 1
                 last = min(count, m.first_visible() + m.cols * m.rows)
                 total = number(count) if view.listing.complete() else number(count) + "+"
-                parts.append("%s–%s из %s" % (number(first), number(last), total))
+                parts.append(ui_i18n.tr("%s–%s из %s") % (number(first), number(last), total))
         self["context"].setText(" · ".join(parts))
         sortable = self.section in ("vod", "series")
-        self["hint_red"].setText("Сортировка" if sortable else "")
+        self["hint_red"].setText(ui_i18n.tr("Сортировка") if sortable else "")
         visible(self["hint_red_dot"], sortable)
         self.update_focus_info()
 
@@ -722,7 +725,7 @@ class Shell(Screen):
             self["title"].setText(ui_api.text(T.clip(ui_api.unicode_text(item.get("name") or ""), 40)))
             self["meta"].setText(focus_meta(item))
         else:
-            self["title"].setText(SECTION_TITLE[self.section])
+            self["title"].setText(ui_i18n.tr(SECTION_TITLE[self.section]))
             self["meta"].setText("")
         if self.live_list() and self.live.item():
             self.guide_timer.start(GUIDE_DELAY_MS, True)
@@ -1010,7 +1013,7 @@ class Shell(Screen):
         def fail(failure):
             self.fav_busy = False
             if not self.closed:
-                self.show_toast(ui_api.problem(failure).message, "Не удалось изменить избранное")
+                self.show_toast(ui_i18n.tr_server(ui_api.problem(failure).message), ui_i18n.tr("Не удалось изменить избранное"))
 
         # Not tied to the list on screen: the change counts even if the viewer moved on.
         self.fav_pending = threads.deferToThread(ui_api.request_json, path, body, 35, True, method)
@@ -1065,8 +1068,9 @@ class Shell(Screen):
         """Order of films and series: new arrivals, popular, rating, name."""
         if self.section not in ("vod", "series") or not self.source:
             return
-        options = [{"id": key, "name": label} for key, label in SORTS]
-        self.menu.open("Сортировка", "Порядок фильмов и сериалов в категориях", options, self.sort(), self.sort_chosen)
+        options = [{"id": key, "name": ui_i18n.tr(label)} for key, label in SORTS]
+        self.menu.open(ui_i18n.tr("Сортировка"), ui_i18n.tr("Порядок фильмов и сериалов в категориях"), options, self.sort(),
+                       self.sort_chosen)
 
     def sort_chosen(self, option=None):
         if not option or option.get("id") == self.sort() or self.closed:
@@ -1097,11 +1101,12 @@ class Shell(Screen):
 
     def key_green(self):
         if len(self.sources) < 2:
-            self.show_toast("Подключён один источник" if self.sources else "Источники не найдены",
-                            "Порталы и плейлисты добавляются в веб-интерфейсе")
+            self.show_toast(ui_i18n.tr("Подключён один источник") if self.sources else ui_i18n.tr("Источники не найдены"),
+                            ui_i18n.tr("Порталы и плейлисты добавляются в веб-интерфейсе"))
             return
-        options = [dict(src, detail=SOURCE_KIND.get(src.get("type"), "")) for src in self.sources]
-        self.menu.open("Источники", "Порталы и плейлисты из веб-интерфейса", options, self.source_id(), self.portal_chosen)
+        options = [dict(src, detail=ui_i18n.tr(SOURCE_KIND.get(src.get("type"), ""))) for src in self.sources]
+        self.menu.open(ui_i18n.tr("Источники"), ui_i18n.tr("Порталы и плейлисты из веб-интерфейса"),
+                       options, self.source_id(), self.portal_chosen)
 
     def portal_chosen(self, source=None):
         if source and source.get("id") != self.source_id():
@@ -1162,11 +1167,11 @@ class Shell(Screen):
         except (ImportError, ValueError):
             from ui_detail import DetailScreen
         section = self.search.scope if self.section == "search" else self.section
-        crumbs = [SECTION_TITLE.get(section, "")]
+        crumbs = [ui_i18n.tr(SECTION_TITLE.get(section, ""))]
         if self.section == "search":
-            crumbs.append("Поиск")
+            crumbs.append(ui_i18n.tr("Поиск"))
         elif self.categories:
-            crumbs.append(ui_api.text(self.categories[self.cat_active].get("name", "")))
+            crumbs.append(ui_i18n.tr_server(self.categories[self.cat_active].get("name", "")))
         source = dict(self.source_of(item), section=item.get("type") or SECTION_TYPE.get(section, "vod"))
         self.session.openWithCallback(self.card_closed, DetailScreen, source, item, " › ".join(crumbs), self.images,
                                       self.favorite_shown)
@@ -1176,12 +1181,12 @@ class Shell(Screen):
             from .ui_guide import GuideScreen
         except (ImportError, ValueError):
             from ui_guide import GuideScreen
-        crumbs = [SECTION_TITLE[self.section if self.library() else "live"]]
+        crumbs = [ui_i18n.tr(SECTION_TITLE[self.section if self.library() else "live"])]
         if self.section == "search":
-            crumbs.append("Поиск")
+            crumbs.append(ui_i18n.tr("Поиск"))
         elif self.categories:
-            crumbs.append(ui_api.text(self.categories[self.cat_active].get("name", "")))
-        crumbs.append("Программа передач")
+            crumbs.append(ui_i18n.tr_server(self.categories[self.cat_active].get("name", "")))
+        crumbs.append(ui_i18n.tr("Программа передач"))
 
         def closed(*args):
             self.card_closed()
@@ -1202,7 +1207,7 @@ class Shell(Screen):
         if self.playing:
             return  # a second OK must not mint a second link
         self.playing = True
-        self.show_message("Подготавливаю видео…")
+        self.show_message(ui_i18n.tr("Подготавливаю видео…"))
         path = ui_api.catalog_path(item.get("source") or self.source_id(), "play")
         # By persistent id: it plays even after the list was refreshed meanwhile.
         self.api(path, self.open_player, self.play_failed, body=ui_library.entry(item), stale=self.play_dropped, convert=True)
@@ -1213,7 +1218,7 @@ class Shell(Screen):
 
     def play_failed(self, problem):
         self.playing = False
-        self.show_message(problem.message, "OK — попробовать снова")
+        self.show_message(ui_i18n.tr_server(problem.message), ui_i18n.tr("OK — попробовать снова"))
 
     def open_player(self, result):
         self.hide_message()
@@ -1228,7 +1233,7 @@ class Shell(Screen):
             self.session.openWithCallback(self.player_closed, CatalogPlayer, ref)
         except Exception:
             self.playing = False
-            self.show_message("Не удалось открыть проигрыватель", "OK — попробовать снова")
+            self.show_message(ui_i18n.tr("Не удалось открыть проигрыватель"), ui_i18n.tr("OK — попробовать снова"))
 
     def player_closed(self, *args):
         self.playing = False
@@ -1236,4 +1241,5 @@ class Shell(Screen):
             self.hide_message()
             self.content().render(False, self.zone == "content")
             if args and args[0] == "failed":
-                self.show_toast("Канал не отвечает", "Источник не отдал видео — попробуйте позже или другой канал")
+                self.show_toast(ui_i18n.tr("Канал не отвечает"),
+                                ui_i18n.tr("Источник не отдал видео — попробуйте позже или другой канал"))

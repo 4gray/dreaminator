@@ -150,11 +150,17 @@ func (a *App) ReorderBouquets(ids []string) error {
 }
 
 func (a *App) UpdateSettings(s Settings) error {
+	langInput := strings.TrimSpace(s.Language)
 	s.normalize()
 	s.WebifURL = strings.TrimRight(strings.TrimSpace(s.WebifURL), "/")
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	prev := a.st.Settings
+	if strings.EqualFold(langInput, "auto") {
+		s.Language = ""
+	} else if s.Language == "" && prev.Language != "" {
+		s.Language = prev.Language
+	}
 	a.st.Settings = s
 	if prev.Picons != s.Picons || prev.PiconDir != s.PiconDir {
 		go a.SyncPicons(a.bg, false)
@@ -163,5 +169,17 @@ func (a *App) UpdateSettings(s Settings) error {
 	if prev.ServiceType != s.ServiceType || prev.BouquetsOnTop != s.BouquetsOnTop {
 		a.touch()
 	}
+	return a.save()
+}
+
+// SetLanguage updates the persisted UI language synced from the browser.
+func (a *App) SetLanguage(lang string) error {
+	norm := NormalizeLanguage(lang)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.st.Settings.Language == norm {
+		return nil
+	}
+	a.st.Settings.Language = norm
 	return a.save()
 }

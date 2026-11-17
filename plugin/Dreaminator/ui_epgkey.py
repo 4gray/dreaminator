@@ -14,9 +14,10 @@ from __future__ import absolute_import
 from twisted.internet import threads
 
 try:
-    from . import ui_api
+    from . import ui_api, ui_i18n
 except (ImportError, ValueError):
     import ui_api
+    import ui_i18n
 
 NAME = "Dreaminator — программа и архив"
 # What the EPG key did before it was given to Dreaminator (the Hotkey
@@ -105,7 +106,7 @@ def open_guide(session, found, ref, start=None):
     except (ImportError, ValueError):
         from ui_guide import GuideScreen
     source, item = found.get("source") or {}, found.get("item") or {}
-    crumbs = " › ".join(ui_api.text(x) for x in (source.get("name") or "", CRUMB) if x)
+    crumbs = " › ".join(ui_api.text(x) for x in (source.get("name") or "", ui_i18n.tr(CRUMB)) if x)
 
     def closed(*args):
         # OK on the programme on air: watch the channel. From the EPG key it
@@ -158,7 +159,7 @@ def epg(session, service=None, event=None, **kwargs):
 
     def fallback():
         if from_menu:
-            show_message(session, "Этого канала нет в плейлистах Dreaminator")
+            show_message(session, ui_i18n.tr("Этого канала нет в плейлистах Dreaminator"))
         else:
             open_native(screen)
 

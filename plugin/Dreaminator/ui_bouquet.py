@@ -8,10 +8,12 @@ from Components.Label import Label
 from Screens.Screen import Screen
 
 try:
-    from . import ui_api, ui_epgkey
+    from . import ui_api, ui_epgkey, ui_i18n, ui_theme as T
 except (ImportError, ValueError):
     import ui_api
     import ui_epgkey
+    import ui_i18n
+    import ui_theme as T
 
 NAME = "Архив Dreaminator"
 
@@ -50,17 +52,18 @@ class BouquetArchiveScreen(Screen):
         except (ImportError, ValueError):
             import plugin
         from enigma import getDesktop
-        self.skin = plugin.scale_skin('''<screen name="DreaminatorBouquetArchive" position="center,center" size="1100,240" title="Архив Dreaminator" backgroundColor="#10141a">
+        title = ui_i18n.tr(NAME)
+        self.skin = plugin.scale_skin('''<screen name="DreaminatorBouquetArchive" position="center,center" size="1100,240" title="%s" backgroundColor="#10141a">
             <widget name="status" position="40,30" size="1020,110" font="Regular;32" foregroundColor="#ffffff" backgroundColor="#10141a" />
             <widget name="hint" position="40,165" size="1020,40" font="Regular;25" foregroundColor="#a8adb6" backgroundColor="#10141a" />
-        </screen>''', getDesktop(0).size().width())
+        </screen>''' % T.escape(title), getDesktop(0).size().width())
         Screen.__init__(self, session)
-        self.setTitle(NAME)
+        self.setTitle(title)
         self.ref = ref
         self.closed = False
         self.loading = False
-        self["status"] = Label("Открываю архив канала…")
-        self["hint"] = Label("Back — вернуться в список каналов")
+        self["status"] = Label(ui_i18n.tr("Открываю архив канала…"))
+        self["hint"] = Label(ui_i18n.tr("Back — вернуться в список каналов"))
         self["actions"] = ActionMap(["OkCancelActions", "ColorActions"], {
             "cancel": self.close, "red": self.close, "yellow": self.load,
         }, -1)
@@ -74,10 +77,10 @@ class BouquetArchiveScreen(Screen):
         if self.closed or self.loading:
             return
         if not ui_epgkey.is_stream(self.ref):
-            self["status"].setText("Выберите IPTV-канал из плейлистов Dreaminator")
+            self["status"].setText(ui_i18n.tr("Выберите IPTV-канал из плейлистов Dreaminator"))
             return
         self.loading = True
-        self["status"].setText("Открываю архив канала…")
+        self["status"].setText(ui_i18n.tr("Открываю архив канала…"))
         path = ui_api.query_path("/api/catalog/service", ref=self.ref)
         threads.deferToThread(ui_api.request_json, path, None, 5, True).addCallbacks(self.resolved, self.failed)
 
@@ -87,10 +90,10 @@ class BouquetArchiveScreen(Screen):
             return
         source, item = (found or {}).get("source") or {}, (found or {}).get("item") or {}
         if not source.get("id") or not item.get("key"):
-            self["status"].setText("Этого канала нет в плейлистах Dreaminator")
+            self["status"].setText(ui_i18n.tr("Этого канала нет в плейлистах Dreaminator"))
             return
         if not item.get("archive"):
-            self["status"].setText("У этого канала нет архива в плейлисте провайдера")
+            self["status"].setText(ui_i18n.tr("У этого канала нет архива в плейлисте провайдера"))
             return
         try:
             from .ui_guide import GuideScreen
@@ -101,13 +104,13 @@ class BouquetArchiveScreen(Screen):
 
         def allowed(**unused):
             if not self.closed:
-                self.session.openWithCallback(self.close, GuideScreen, source, item, NAME, None, True)
+                self.session.openWithCallback(self.close, GuideScreen, source, item, ui_i18n.tr(NAME), None, True)
 
         # Authorize from the loader, which stays modal while the native
         # context menu waits to close. A PIN callback can then safely open
         # the guide, without racing the context menu's deferred close.
-        self["status"].setText("Доступ к каналу защищён PIN-кодом")
-        self["hint"].setText("Жёлтая — повторить · Back — вернуться в список")
+        self["status"].setText(ui_i18n.tr("Доступ к каналу защищён PIN-кодом"))
+        self["hint"].setText(ui_i18n.tr("Жёлтая — повторить · Back — вернуться в список"))
         if parentalControl.isServicePlayable(eServiceReference(self.ref), callback=allowed, session=self.session):
             allowed()
 
@@ -116,8 +119,9 @@ class BouquetArchiveScreen(Screen):
         if self.closed:
             return
         problem = ui_api.problem(failure)
-        self["status"].setText("Этого канала нет в плейлистах Dreaminator" if problem.kind == "missing" else problem.message)
-        self["hint"].setText("Жёлтая — повторить · Back — вернуться в список")
+        self["status"].setText(ui_i18n.tr("Этого канала нет в плейлистах Dreaminator")
+                               if problem.kind == "missing" else ui_i18n.tr_server(problem.message))
+        self["hint"].setText(ui_i18n.tr("Жёлтая — повторить · Back — вернуться в список"))
 
 
 def install_legacy_menu(reason, **kwargs):
@@ -151,7 +155,7 @@ def install_legacy_menu(reason, **kwargs):
             context.close()
 
         menu = context["menu"]
-        menu.setList([ChoiceEntryComponent(text=(NAME, launch))] + list(menu.list))
+        menu.setList([ChoiceEntryComponent(text=(ui_i18n.tr(NAME), launch))] + list(menu.list))
 
     init.dreaminator_archive = True
     ChannelContextMenu.__init__ = init

@@ -193,3 +193,46 @@ func TestReceiverAPIRenameAndDelete(t *testing.T) {
 		t.Fatalf("index %q", index)
 	}
 }
+
+func TestLanguageEndpoint(t *testing.T) {
+	dir := t.TempDir()
+	defaults := app.DefaultSettings()
+	defaults.WebifURL = ""
+	a, err := app.New(app.Config{DataDir: filepath.Join(dir, "data"), E2Dir: filepath.Join(dir, "e2"), EPGImportDir: filepath.Join(dir, "epg")}, defaults, log.New(io.Discard, "", 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(a, fstest.MapFS{})
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, httptest.NewRequest("POST", "/api/language", strings.NewReader(`{"language":"fr-FR"}`)))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /api/language = %d: %s", rr.Code, rr.Body.String())
+	}
+
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, httptest.NewRequest("GET", "/api/summary", nil))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/summary = %d", rr.Code)
+	}
+	var sum app.Summary
+	if err := json.Unmarshal(rr.Body.Bytes(), &sum); err != nil {
+		t.Fatal(err)
+	}
+	if sum.Language != "fr" {
+		t.Fatalf("summary.Language = %q, want fr", sum.Language)
+	}
+
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, httptest.NewRequest("GET", "/api/state", nil))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/state = %d", rr.Code)
+	}
+	var st app.StateView
+	if err := json.Unmarshal(rr.Body.Bytes(), &st); err != nil {
+		t.Fatal(err)
+	}
+	if st.Settings.Language != "fr" {
+		t.Fatalf("state.Settings.Language = %q, want fr", st.Settings.Language)
+	}
+}

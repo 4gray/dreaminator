@@ -12,11 +12,12 @@ from Components.Label import Label
 from Components.Pixmap import Pixmap
 
 try:
-    from . import ui_api, ui_theme as T
+    from . import ui_api, ui_i18n, ui_theme as T
     from .ui_models import EDGE_DOWN, EDGE_LEFT, EDGE_RIGHT, EDGE_UP, MOVED, Keyboard, SPECIAL
     from .ui_widgets import ChannelList, PosterGrid, color, font, move, visible
 except (ImportError, ValueError):
     import ui_api
+    import ui_i18n
     import ui_theme as T
     from ui_models import EDGE_DOWN, EDGE_LEFT, EDGE_RIGHT, EDGE_UP, MOVED, Keyboard, SPECIAL
     from ui_widgets import ChannelList, PosterGrid, color, font, move, visible
@@ -43,7 +44,7 @@ class SearchPanel(object):
     def __init__(self, shell):
         self.shell = shell
         sc, s = shell, shell.s
-        self.kb = Keyboard(K["cols"])
+        self.kb = Keyboard(K["cols"], layout="ru" if ui_i18n.get_language() == "ru" else "en")
         self.scope = "vod"
         self.scope_focus = 0
         self.query = u""
@@ -159,7 +160,7 @@ class SearchPanel(object):
             else:
                 sc["k_%d" % i].hide()
                 sc["kp_%d" % i].hide()
-        labels = {"space": "Пробел", "erase": "Стереть", "layout": self.kb.layout_label()}
+        labels = {"space": ui_i18n.tr("Пробел"), "erase": ui_i18n.tr("Стереть"), "layout": self.kb.layout_label()}
         for i, (kind, _) in enumerate(SPECIAL):
             sc["kw_%d" % i].setText(ui_api.text(labels[kind]))
             sc["kw_%d" % i].show()
@@ -188,7 +189,7 @@ class SearchPanel(object):
                 continue
             key, label = scopes[i]
             focused = sc.zone == "scope" and i == self.scope_focus
-            sc["sc_%d" % i].setText(label)
+            sc["sc_%d" % i].setText(ui_i18n.tr(label))
             sc["sc_%d" % i].show()
             visible(sc["scf_%d" % i], focused)
             visible(sc["scp_%d" % i], not focused)
@@ -201,7 +202,7 @@ class SearchPanel(object):
             sc["q_text"].setText(ui_api.text(self.kb.text + u"|"))
             color(sc, "q_text", T.TEXT)
         else:
-            sc["q_text"].setText("Название…")
+            sc["q_text"].setText(ui_i18n.tr("Название…"))
             color(sc, "q_text", T.MUTED)
 
     def render_status(self):
@@ -209,30 +210,30 @@ class SearchPanel(object):
         r = self.result or {}
         line, hint = "", ""
         if self.state == "idle":
-            line, hint = "Наберите название", "Ищем на выбранном портале, в разделе ниже"
+            line, hint = ui_i18n.tr("Наберите название"), ui_i18n.tr("Ищем на выбранном портале, в разделе ниже")
         elif self.state == "short":
-            line = "Введите хотя бы две буквы"
+            line = ui_i18n.tr("Введите хотя бы две буквы")
         elif self.state == "loading":
-            line = "Ищу…"
+            line = ui_i18n.tr("Ищу…")
         elif self.state == "error":
-            line, hint = self.error_text, "Жёлтая — повторить"
+            line, hint = self.error_text, ui_i18n.tr("Жёлтая — повторить")
         else:
             count = self.content().count()
             more = "" if self.content().listing.complete() else "+"
             scope = r.get("scope")
             query = ui_api.text(r.get("query") or self.query)
             if not count:
-                line = "Ничего не найдено по «%s»" % query
+                line = ui_i18n.tr("Ничего не найдено по «%s»") % query
             elif scope == "channels":
-                line = "Найдено каналов: %d%s" % (count, more)
+                line = ui_i18n.tr("Найдено каналов: %d%s") % (count, more)
             else:
-                line = "Найдено: %d%s" % (count, more)
+                line = ui_i18n.tr("Найдено: %d%s") % (count, more)
             if scope == "server":
-                hint = "Поиск на сервере портала"
+                hint = ui_i18n.tr("Поиск на сервере портала")
             elif scope == "channels":
-                hint = "Поиск по всем телеканалам портала"
+                hint = ui_i18n.tr("Поиск по всем телеканалам портала")
             elif scope == "loaded":
-                hint = "Портал не умеет искать — проверены только открытые страницы (%d)" % int(r.get("searched") or 0)
+                hint = ui_i18n.tr("Портал не умеет искать — проверены только открытые страницы (%d)") % int(r.get("searched") or 0)
         sc["q_status"].setText(line)
         sc["q_status2"].setText(hint)
         color(sc, "q_status", T.ERROR if self.state == "error" else T.TEXT)
@@ -295,7 +296,8 @@ class SearchPanel(object):
             content.listing.fail(n, problem)
             if n == 1:
                 self.state = "error"
-                self.error_text = {"network": "Нет связи с порталом", "service": problem.message}.get(problem.kind, problem.message)
+                self.error_text = (ui_i18n.tr("Нет связи с порталом") if problem.kind == "network"
+                                   else ui_i18n.tr_server(problem.message))
                 self.render_status()
 
         self.shell.api(path, ok, fail, guard=False)

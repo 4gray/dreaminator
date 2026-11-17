@@ -223,9 +223,9 @@ SPECIAL = [("space", u"Пробел"), ("erase", u"⌫"), ("layout", u"ABC")]
 class Keyboard(object):
     """On-screen keyboard: a letter grid plus a row of wide keys."""
 
-    def __init__(self, cols=7):
+    def __init__(self, cols=7, layout="ru"):
         self.cols = cols
-        self.layout = "ru"
+        self.layout = layout if layout in LAYOUTS else "ru"
         self.focus = 0
         self.text = u""
 

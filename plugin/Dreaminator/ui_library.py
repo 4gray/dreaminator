@@ -9,9 +9,10 @@ their own source id, persistent id and navigation key.
 from __future__ import absolute_import
 
 try:
-    from . import ui_api, ui_theme as T
+    from . import ui_api, ui_i18n, ui_theme as T
 except (ImportError, ValueError):
     import ui_api
+    import ui_i18n
     import ui_theme as T
 
 SECTIONS = ("favorites", "recent")
@@ -56,30 +57,18 @@ def name_of(item, limit=24):
     return ui_api.text(T.clip(ui_api.unicode_text(item.get("name") or ""), limit))
 
 
+def empty_message(section):
+    head, body = EMPTY[section]
+    return ui_i18n.tr(head), ui_i18n.tr(body)
+
+
 def favorite_message(item, result):
     """Toast after a change: where the row went and when the TV sees it."""
-    added = bool(result.get("fav"))
-    if not result.get("channel"):
-        if added:
-            return "«%s» — в избранном" % name_of(item), "Раздел «Избранное» — вверху панели слева"
-        return "«%s» убран из избранного" % name_of(item), ""
-    lst = name_of({"name": result.get("list") or "Избранное"}, 20)
-    if added:
-        text = "«%s» — в списке «%s»" % (name_of(item, 20), lst)
-        hint = "В списке каналов ТВ — после закрытия каталога"
-    else:
-        text = "«%s» убран из списка «%s»" % (name_of(item, 18), lst)
-        hint = "Список каналов ТВ обновится после закрытия каталога"
-    if result.get("created"):
-        hint = "Список «%s» создан заново · на ТВ — после закрытия каталога" % lst
-    elif result.get("unsent"):
-        # Sending the list also sends what the tablet has not sent yet.
-        hint = "При закрытии на ТВ уйдут и неотправленные правки с планшета"
-    return text, hint
+    return ui_i18n.favorite_message(item, result, name_of)
 
 
 def missing_message(item):
-    return "«%s» нет в плейлисте" % name_of(item), "Провайдер убрал канал · долгое OK — убрать из списка"
+    return ui_i18n.missing_message(item, name_of)
 
 
 def close_catalog(apply_channels):

@@ -111,6 +111,17 @@ svg { flex: none; }
 }
 .box-status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.topbar .lang-select {
+  width: auto;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 8px;
+  font-size: 13px;
+  border-radius: 10px;
+  max-width: 132px;
+  flex: none;
+}
+
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
 .dot.ok { background: var(--good); box-shadow: 0 0 0 4px var(--good-soft); }
 .dot.bad { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); }
@@ -661,4 +672,37 @@ details.howto li { margin-bottom: 6px; }
   .tmdb-row .row-main { flex-basis: calc(100% - 70px); }
   .tmdb-row .btn-sm { margin-left: 66px; }
   .tmdb-search select, .tmdb-search .btn { flex: 1 1 auto; }
+}
+
+/* ---------- RTL support (Hebrew, Arabic) ---------- */
+
+[dir="rtl"] .box-status { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .search svg { left: auto; right: 14px; }
+[dir="rtl"] .search input[type="search"] { padding-left: 14px; padding-right: 46px; }
+[dir="rtl"] .target { padding-left: 0; padding-right: 14px; }
+[dir="rtl"] .list-open { text-align: right; }
+[dir="rtl"] .list-open > svg,
+[dir="rtl"] .back svg { transform: scaleX(-1); }
+[dir="rtl"] .row { padding: 8px 14px 8px 8px; }
+[dir="rtl"] .modal-head .icon-btn { margin: -8px 0 -8px -8px; }
+[dir="rtl"] .back { margin-left: 0; margin-right: -12px; }
+[dir="rtl"] .group { text-align: right; padding: 12px 18px 12px 14px; }
+[dir="rtl"] .row-button { text-align: right; }
+[dir="rtl"] .list-card { padding: 6px 4px 6px 6px; }
+
+@media (min-width: 900px) {
+  [dir="rtl"] .nav {
+    left: auto;
+    right: 0;
+    border-right: 0;
+    border-left: 1px solid var(--border);
+  }
+  [dir="rtl"] main {
+    margin-left: auto;
+    margin-right: max(var(--side-w), calc((100vw - 980px) / 2));
+  }
+  [dir="rtl"] #applybar {
+    left: 0;
+    right: var(--side-w);
+  }
 }

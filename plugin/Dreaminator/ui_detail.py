@@ -18,13 +18,14 @@ from Components.Pixmap import Pixmap
 from Screens.Screen import Screen
 
 try:
-    from . import ui_api, ui_library, ui_theme as T, ui_trace
+    from . import ui_api, ui_i18n, ui_library, ui_theme as T, ui_trace
     from .ui_images import ImageLoader
     from .ui_models import ListModel, PagedList
     from .ui_widgets import RATING_LABEL, add_cell_components, clipped, color, duration, font, move, poster_cell_skin, visible
     from .catalog_state import playback_url
 except (ImportError, ValueError):
     import ui_api
+    import ui_i18n
     import ui_library
     import ui_theme as T
     import ui_trace
@@ -113,9 +114,9 @@ class DetailScreen(Screen):
     skin = SKIN_XML
 
     def __init__(self, session, source, item, crumbs, images=None, favorite_shown=None):
+        self.s, self.skin = _skin()
         Screen.__init__(self, session)
         self.setTitle("Dreaminator")
-        self.s = SKIN
         self.source = source
         self.item = dict(item)
         self.row = item  # the list's own row: its favorite mark follows the card
@@ -263,7 +264,7 @@ class DetailScreen(Screen):
             visible(self["ab_%d" % i], not self.series)
             visible(self["a_%d" % i], not self.series)
             visible(self["ai_%d" % i], not self.series)
-        self["seasons_label"].setText("Сезоны" if self.series else "")
+        self["seasons_label"].setText(ui_i18n.tr("Сезоны") if self.series else "")
         self.render_cast([])
         self.show_still(None, None)
         self.render_seasons()
@@ -272,7 +273,7 @@ class DetailScreen(Screen):
         self.render_hint()
         self.api(self.path("details", key=self.item["key"]), self.details_loaded, self.details_failed)
         if self.series:
-            self["status"].setText("Загружаю сезоны…")
+            self["status"].setText(ui_i18n.tr("Загружаю сезоны…"))
             self.load_seasons(1)
 
     def details_loaded(self, details):
@@ -322,7 +323,7 @@ class DetailScreen(Screen):
         facts = []
         minutes = tm.get("runtime") or d.get("duration") or item.get("duration")
         if duration(minutes):
-            facts.append(duration(minutes) if not self.series else "серия ≈ " + duration(minutes))
+            facts.append(duration(minutes) if not self.series else ui_i18n.tr("серия ≈ ") + duration(minutes))
         if d.get("age"):
             facts.append(t(d["age"]))
         genres = ", ".join(t(g) for g in tm.get("genres") or []) or t(d.get("genres") or "")
@@ -350,27 +351,27 @@ class DetailScreen(Screen):
         credits = []
         directors = ", ".join(t(x) for x in tm.get("directors") or [])
         if directors:
-            credits.append(("Создатели: " if tm.get("type") == "tv" else "Режиссёр: ") + directors)
+            credits.append((ui_i18n.tr("Создатели: ") if tm.get("type") == "tv" else ui_i18n.tr("Режиссёр: ")) + directors)
         elif d.get("director"):
-            credits.append("Режиссёр: " + t(d["director"]))
+            credits.append(ui_i18n.tr("Режиссёр: ") + t(d["director"]))
         cast = tm.get("cast") or []
         if d.get("actors") and (self.series or not cast):
             # The portal's own cast list when TMDB has no portraits to show.
-            credits.append("В ролях: " + t(d["actors"]))
+            credits.append(ui_i18n.tr("В ролях: ") + t(d["actors"]))
         self["credits"].setText(clipped(" · ".join(credits), 100))
         self.render_cast([] if self.series else cast)
         origin = []
         if tm:
-            origin.append("Описание и рейтинг TMDB" if tm.get("overview") else "Данные TMDB")
+            origin.append(ui_i18n.tr("Описание и рейтинг TMDB") if tm.get("overview") else ui_i18n.tr("Данные TMDB"))
         if any(src != "TMDB" for src, _ in ratings):
-            origin.append("рейтинги IMDb и КП — по данным портала")
-        origin.append("видео — портал %s" % t(self.source.get("name", "")))
+            origin.append(ui_i18n.tr("рейтинги IMDb и КП — по данным портала"))
+        origin.append(ui_i18n.tr("видео — портал %s") % t(self.source.get("name", "")))
         footer = ui_api.unicode_text(" · ".join(origin))
         self["footer"].setText(clipped(footer[:1].upper() + footer[1:], 130))
 
     def render_cast(self, cast):
         """Up to eight TMDB portraits under the description (films)."""
-        self["cast_label"].setText("В ролях" if cast else "")
+        self["cast_label"].setText(ui_i18n.tr("В ролях") if cast else "")
         sid = self.source["id"]
         requests = []
         w, h = self.s.px(CAST["w"]), self.s.px(CAST["h"])
@@ -497,14 +498,14 @@ class DetailScreen(Screen):
                 self.load_seasons(page + 1)
                 return
             if not self.seasons:
-                self["status"].setText("Портал не отдал сезоны этого сериала")
+                self["status"].setText(ui_i18n.tr("Портал не отдал сезоны этого сериала"))
                 return
             self["status"].setText("")
             self.render_seasons()
             self.open_season()
 
         def fail(problem):
-            self["status"].setText(problem.message)
+            self["status"].setText(ui_i18n.tr_server(problem.message))
 
         self.api(self.path("items", type=self.item_type(), parent=self.item["key"], page=page), ok, fail)
 
@@ -514,9 +515,9 @@ class DetailScreen(Screen):
     def season_label(self, season, index):
         number = season.get("number")
         if number:
-            return "Сезон %s" % ui_api.text(number)
+            return ui_i18n.tr("Сезон %s") % ui_api.text(number)
         name = ui_api.text(season.get("name") or "")
-        return name or "Сезон %d" % (index + 1)
+        return name or (ui_i18n.tr("Сезон %d") % (index + 1))
 
     def render_seasons(self):
         if not self.series:
@@ -551,7 +552,7 @@ class DetailScreen(Screen):
         self.episode_model = ListModel(EPISODES["rows"])
         self.episode_names = {}
         self.render_episodes()
-        self["status"].setText("Загружаю серии…")
+        self["status"].setText(ui_i18n.tr("Загружаю серии…"))
         self.load_episodes(1)
 
     def load_episodes(self, page):
@@ -563,7 +564,7 @@ class DetailScreen(Screen):
             if generation != self.episode_generation:
                 return
             self.episodes.store(page, result)
-            self["status"].setText("" if self.episodes.count() else "В этом сезоне нет серий")
+            self["status"].setText("" if self.episodes.count() else ui_i18n.tr("В этом сезоне нет серий"))
             self.render_episodes()
             if page == 1:
                 self.load_episode_names(season, generation)
@@ -571,7 +572,7 @@ class DetailScreen(Screen):
         def fail(problem):
             if generation == self.episode_generation:
                 self.episodes.fail(page, problem)
-                self["status"].setText(problem.message)
+                self["status"].setText(ui_i18n.tr_server(problem.message))
 
         self.api(self.path("items", type=self.item_type(), parent=season["key"], page=page), ok, fail)
 
@@ -619,16 +620,16 @@ class DetailScreen(Screen):
     # ------------------------------------------------------------ focus
 
     def render_hint(self):
-        held = "убрать из избранного" if self.item.get("fav") else "в избранное"
-        self["hint"].setText("OK долго — %s · Back — назад" % held)
+        held = ui_i18n.tr("убрать из избранного") if self.item.get("fav") else ui_i18n.tr("в избранное")
+        self["hint"].setText(ui_i18n.tr("OK долго — %s · Back — назад") % held)
 
     def render_actions(self):
         for i, action in enumerate(ACTIONS):
             focused = self.zone == "actions" and i == self.action_focus and not self.series
             visible(self["abf_%d" % i], focused)
-            label = ACTION_LABELS[action]
+            label = ui_i18n.tr(ACTION_LABELS[action])
             if action == "favorite" and self.item.get("fav"):
-                label = "В избранном"
+                label = ui_i18n.tr("В избранном")
             self["a_%d" % i].setText(label)
             color(self, "a_%d" % i, T.ON_ACCENT if focused else T.TEXT)
             pixmap = self.icon(ACTION_ICONS[action], "dark" if focused else "light")
@@ -711,7 +712,7 @@ class DetailScreen(Screen):
         def fail(failure):
             self.fav_busy = False
             if not self.closed:
-                self["status"].setText(ui_api.problem(failure).message)
+                self["status"].setText(ui_i18n.tr_server(ui_api.problem(failure).message))
 
         threads.deferToThread(ui_api.request_json, path, body, 35, True, method).addCallbacks(ok, fail)
 
@@ -753,7 +754,7 @@ class DetailScreen(Screen):
         if self.playing:
             return  # a second OK must not mint a second link
         self.playing = True
-        self["status"].setText("Подготавливаю видео…")
+        self["status"].setText(ui_i18n.tr("Подготавливаю видео…"))
         self.api(self.path("play"), self.open_player, self.play_failed, body=ui_library.entry(item), convert=True,
                  stale=self.play_dropped)
 
@@ -762,7 +763,7 @@ class DetailScreen(Screen):
 
     def play_failed(self, problem):
         self.playing = False
-        self["status"].setText(problem.message + " · OK — ещё раз")
+        self["status"].setText(ui_i18n.tr("%s · OK — ещё раз") % ui_i18n.tr_server(problem.message))
 
     def open_player(self, result):
         self["status"].setText("")
@@ -776,7 +777,7 @@ class DetailScreen(Screen):
             self.session.openWithCallback(self.player_closed, CatalogPlayer, ref)
         except Exception:
             self.playing = False
-            self["status"].setText("Не удалось открыть проигрыватель · OK — ещё раз")
+            self["status"].setText(ui_i18n.tr("Не удалось открыть проигрыватель · OK — ещё раз"))
 
     def player_closed(self, *args):
         # Back on the card with the same focus; the next OK mints a new link.
@@ -784,4 +785,4 @@ class DetailScreen(Screen):
         if not self.closed:
             self.set_zone(self.zone)
             if args and args[0] == "failed":
-                self["status"].setText("Видео не запустилось: портал не отдал поток · OK — ещё раз")
+                self["status"].setText(ui_i18n.tr("Видео не запустилось: портал не отдал поток · OK — ещё раз"))
