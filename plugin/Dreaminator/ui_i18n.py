@@ -1847,6 +1847,18 @@ def _tr_ru_when(text, lang):
             "zh": u"昨天 %s", "th": u"เมื่อวาน %s",
         }.get(lang)
         return fmt % tm if fmt else text
+    m = re.match(u"^(\\d{1,2}) ([^\\s]+) в (\\d\\d:\\d\\d)$", text)
+    if m and m.group(2) in _MONTHS["ru"]:
+        d_num, idx, tm = int(m.group(1)), _MONTHS["ru"].index(m.group(2)), m.group(3)
+        mo = _MONTHS.get(lang, _MONTHS["en"])[idx]
+        if lang in ("ja", "zh"):
+            return u"%s%d日 %s" % (mo, d_num, tm)
+        fmt = {
+            "en": u"%d %s at %s", "fr": u"%d %s à %s", "pt": u"%d de %s às %s", "es": u"%d de %s a las %s",
+            "it": u"%d %s alle %s", "de": u"%d. %s um %s", "pl": u"%d %s o %s", "cs": u"%d. %s v %s",
+            "tr": u"%d %s %s", "he": u"%d ב%s ב-%s", "ar": u"%d %s %s", "th": u"%d %s %s",
+        }.get(lang, u"%d %s at %s")
+        return fmt % (d_num, mo, tm)
     return text
 
 
@@ -1907,6 +1919,33 @@ def tr_server(value, lang=None):
     tr_when = _tr_ru_when(u, lang)
     if tr_when != u:
         return ui_api.text(tr_when)
+    if u == u"без срока":
+        return ui_api.text({
+            "en": u"unlimited", "fr": u"illimité", "pt": u"ilimitado", "es": u"ilimitado", "it": u"illimitato",
+            "de": u"unbegrenzt", "pl": u"bez limitu", "cs": u"bez omezení", "tr": u"süresiz",
+            "he": u"ללא הגבלה", "ar": u"غير محدود", "ja": u"無期限", "zh": u"无限期", "th": u"ไม่จำกัด",
+        }.get(lang, u))
+    m = re.match(u"^(?:«(.+?)» )?до (\\d{1,2}) ([^\\s]+) (\\d{4})$", u)
+    if m and m.group(3) in _MONTHS["ru"]:
+        src_name, d_num, idx, yr = m.group(1), int(m.group(2)), _MONTHS["ru"].index(m.group(3)), m.group(4)
+        mo = _MONTHS.get(lang, _MONTHS["en"])[idx]
+        if lang in ("ja", "zh"):
+            dt = u"%s年%s%d日" % (yr, mo, d_num)
+        elif lang in ("de", "cs"):
+            dt = u"%d. %s %s" % (d_num, mo, yr)
+        elif lang in ("pt", "es"):
+            dt = u"%d de %s de %s" % (d_num, mo, yr)
+        else:
+            dt = u"%d %s %s" % (d_num, mo, yr)
+        until_fmt = {
+            "en": u"until %s", "fr": u"jusqu’au %s", "pt": u"até %s", "es": u"hasta %s",
+            "it": u"fino al %s", "de": u"bis %s", "pl": u"do %s", "cs": u"do %s",
+            "tr": u"%s tarihine kadar", "he": u"עד %s", "ar": u"حتى %s",
+            "ja": u"%sまで", "zh": u"至 %s", "th": u"ถึง %s",
+        }.get(lang, u"until %s") % dt
+        if src_name:
+            return ui_api.text(u"%s · %s" % (src_name, until_fmt))
+        return ui_api.text(until_fmt)
     return ui_api.text(value)
 
 

@@ -111,6 +111,10 @@ test('formatting helpers and receiverUI localize into target languages', async (
   assert.equal(i18n.daysWord(5, 'pt'), '5 dias');
   assert.equal(i18n.trServer('Избранное', 'fr'), 'Favoris');
   assert.equal(i18n.trServer('Все каналы', 'he'), 'כל הערוצים');
+  assert.match(i18n.trServer('до 31 декабря 2027', 'en'), /^until .*2027/);
+  assert.match(i18n.trServer('«Portal» до 31 декабря 2027', 'fr'), /^Portal · jusqu’au .*2027/);
+  assert.equal(i18n.trServer('Ссылка открывается, 10 каналов', 'en'), 'Link is reachable, 10 channels');
+  assert.match(i18n.trServer('Сейчас выбран стандартный проигрыватель GStreamer (4097).', 'en'), /GStreamer/);
 
   class El {
     constructor(tag, props = {}, ...children) {

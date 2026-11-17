@@ -1591,6 +1591,9 @@ class I18nTests(Base):
         self.assertEqual(ui_i18n.tr_server(u"5 мин назад", "fr"), "il y a 5 min")
         self.assertEqual(ui_i18n.tr_server(u"есть у 10 из 20 каналов, обновлена сегодня в 12:30", "en"),
                          "10 of 20 channels, updated today at 12:30")
+        self.assertEqual(ui_i18n.tr_server(u"15 ноября в 04:00", "en"), "15 November at 04:00")
+        self.assertEqual(ui_i18n.tr_server(u"до 31 декабря 2027", "en"), "until 31 December 2027")
+        self.assertEqual(ui_i18n.tr_server(u"до 31 декабря 2027", "fr"), "jusqu’au 31 décembre 2027")
 
     def test_screens_render_translated_ui_and_fit_bounds(self):
         import plugin

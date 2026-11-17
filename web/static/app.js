@@ -720,7 +720,7 @@ function probeView(ch, r) {
   return h('div', {},
     r.ok
       ? h('div', { class: 'status-line ok big' }, icon('check'), t('probe_ok', { name: ch.name }))
-      : h('div', { class: 'form-error' }, r.error || t('probe_fail')),
+      : h('div', { class: 'form-error' }, trServer(r.error) || t('probe_fail')),
     h('div', { class: 'kv-list' },
       row(t('probe_ttfb'), r.firstByteMs ? t('seconds_short', { val: (r.firstByteMs / 1000).toFixed(1) }) : ''),
       row(t('probe_format'), r.format),
@@ -728,7 +728,7 @@ function probeView(ch, r) {
       row(t('probe_audio'), (r.audio || []).join(', ')),
       row(t('probe_speed'), r.mbps ? t('mbps_unit', { val: r.mbps.toFixed(1) }) : ''),
       row(t('probe_server'), r.host)),
-    (r.warnings || []).map((w) => h('div', { class: 'warn-box' }, icon('alert'), w)),
+    (r.warnings || []).map((w) => h('div', { class: 'warn-box' }, icon('alert'), trServer(w))),
     r.ok && !(r.warnings || []).length && h('p', { class: 'hint', style: 'margin-top:12px' }, t('probe_all_good')));
 }
 
@@ -863,7 +863,7 @@ function viewSources() {
   const cards = S.sources.map((s) => {
     let status;
     if (s.refreshing) status = h('div', { class: 'status-line' }, spinner(), t('loading_channels'));
-    else if (s.error) status = h('div', { class: 'status-line error' }, icon('alert'), s.error);
+    else if (s.error) status = h('div', { class: 'status-line error' }, icon('alert'), trServer(s.error));
     else if (s.updatedAt) status = h('div', { class: 'status-line ok' }, icon('check'),
       `${channelsWord(s.channelCount)} · ${s.type === 'file' ? t('source_uploaded') : t('source_updated')} ${when(s.updatedAt)}`);
     const isFile = s.type === 'file';
@@ -917,10 +917,10 @@ function viewSources() {
 // One line about the subscription: status, until when, plan, connections.
 function accountLine(a) {
   if (!a) return null;
-  if (a.error) return h('div', { class: 'status-line error' }, icon('alert'), t('account_check_err', { when: when(a.checkedAt), err: a.error }));
-  if (a.note) return h('div', { class: 'status-line ok' }, icon('check'), t('account_note_checked', { note: a.note, when: when(a.checkedAt) }));
+  if (a.error) return h('div', { class: 'status-line error' }, icon('alert'), t('account_check_err', { when: when(a.checkedAt), err: trServer(a.error) }));
+  if (a.note) return h('div', { class: 'status-line ok' }, icon('check'), t('account_note_checked', { note: trServer(a.note), when: when(a.checkedAt) }));
   let kind = 'ok';
-  const parts = [a.active === false ? t('sub_inactive_status', { status: a.status || t('sub_inactive') }) : t('sub_active')];
+  const parts = [a.active === false ? t('sub_inactive_status', { status: trServer(a.status) || t('sub_inactive') }) : t('sub_active')];
   if (a.active === false) kind = 'error';
   if (a.unlimited) parts.push(t('sub_unlimited'));
   else if (a.expires) {
@@ -930,7 +930,7 @@ function accountLine(a) {
       parts.push(t('sub_until', { date: fmtDate(a.expires) }));
       if (days <= 7) { kind = kind === 'error' ? kind : 'warn'; parts.push(t('sub_days_left', { days: daysWord(days) })); }
     }
-  } else if (a.rawExpiry) parts.push(t('sub_until', { date: a.rawExpiry }));
+  } else if (a.rawExpiry) parts.push(t('sub_until', { date: trServer(a.rawExpiry) }));
   if (a.plan) parts.push(t('sub_plan', { plan: a.plan }));
   if (a.maxConnections) parts.push(t('sub_connections', { used: a.connections || 0, max: a.maxConnections }));
   if (a.trial) parts.push(t('sub_trial'));
@@ -1122,7 +1122,7 @@ function epgCard() {
     status = h('div', {},
       h('div', { class: `status-line ${e.error ? 'error' : 'ok'}` }, icon(e.error ? 'alert' : 'check'),
         t('epg_updated_stats', { when: when(e.updatedAt), matched: e.matched, wanted: channelsWord(e.wanted) })),
-      e.error && h('div', { class: 'status-line error' }, e.error));
+      e.error && h('div', { class: 'status-line error' }, trServer(e.error)));
   } else status = h('div', { class: 'status-line' }, t('epg_not_updated_yet'));
 
   const refresh = async (btn) => {
@@ -1158,7 +1158,7 @@ function piconCard() {
       h('div', { class: `status-line ${p.error ? 'error' : 'ok'}` }, icon(p.error ? 'alert' : 'check'),
         t('picons_updated_stats', { done: p.done, channels: channelsWord(p.channels), when: when(p.updatedAt) })),
       p.noLogo > 0 && h('div', { class: 'status-line' }, t('picons_no_logo', { count: noLogoWord(p.noLogo) })),
-      p.error && h('div', { class: 'status-line error' }, p.error),
+      p.error && h('div', { class: 'status-line error' }, trServer(p.error)),
       (p.failed || []).length > 0 && h('details', { class: 'howto' },
         h('summary', {}, t('picons_failed_count', { n: (p.failed || []).length })),
         h('ul', { style: 'margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:14px' }, p.failed.map((f) => h('li', {}, f)))),
@@ -1294,7 +1294,7 @@ function tmdbCard() {
 function tmdbTestLine(res) {
   return res.ok
     ? h('div', { class: 'status-line ok' }, icon('check'), t('tmdb_connected'))
-    : h('div', { class: 'status-line error' }, icon('alert'), res.error || t('tmdb_check_failed'));
+    : h('div', { class: 'status-line error' }, icon('alert'), trServer(res.error) || t('tmdb_check_failed'));
 }
 
 function fillTMDBCard(card, st, note) {

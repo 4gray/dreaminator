@@ -6014,12 +6014,161 @@ const SERVER_MAP = {
     tr: 'alıcının ağ adresi yok', he: 'לממיר אין כתובת רשת', ar: 'لا يوجد عنوان شبكة للجهاز',
     ja: '受信機にネットワークアドレスがありません', zh: '接收机没有网络地址', th: 'เครื่องรับไม่มีที่อยู่เครือข่าย',
   },
+  'неактивна': {
+    en: 'inactive', fr: 'inactif', pt: 'inativo', es: 'inactivo', it: 'inattivo',
+    de: 'inaktiv', pl: 'nieaktywna', cs: 'neaktivní', tr: 'etkin değil',
+    he: 'לא פעיל', ar: 'غير نشط', ja: '無効', zh: '未激活', th: 'ไม่ทำงาน',
+  },
+  'без срока': {
+    en: 'unlimited', fr: 'illimité', pt: 'ilimitado', es: 'ilimitado', it: 'illimitato',
+    de: 'unbegrenzt', pl: 'bez limitu', cs: 'bez omezení', tr: 'süresiz',
+    he: 'ללא הגבלה', ar: 'غير محدود', ja: '無期限', zh: '无限期', th: 'ไม่จำกัด',
+  },
+  'Сейчас выбран стандартный проигрыватель GStreamer (4097).': {
+    en: 'Currently using the default GStreamer player (4097).',
+    fr: 'Le lecteur GStreamer par défaut (4097) est actuellement sélectionné.',
+    pt: 'Atualmente a usar o leitor GStreamer padrão (4097).',
+    es: 'Actualmente se usa el reproductor GStreamer predeterminado (4097).',
+    it: 'Attualmente in uso il lettore GStreamer predefinito (4097).',
+    de: 'Aktuell wird der Standard-GStreamer-Player (4097) verwendet.',
+    pl: 'Obecnie wybrany jest domyślny odtwarzacz GStreamer (4097).',
+    cs: 'Aktuálně je vybrán výchozí přehrávač GStreamer (4097).',
+    tr: 'Şu anda varsayılan GStreamer oynatıcı (4097) seçili.',
+    he: 'כרגע נבחר נגן ה-GStreamer הרגיל (4097).',
+    ar: 'يتم حالياً استخدام مشغل GStreamer الافتراضي (4097).',
+    ja: '現在は標準の GStreamer プレーヤー (4097) が選択されています。',
+    zh: '当前使用默认 GStreamer 播放器 (4097)。',
+    th: 'กำลังใช้เครื่องเล่น GStreamer เริ่มต้น (4097)',
+  },
+  'нужна ссылка на плейлист, начинающаяся с http:// или https://': {
+    en: 'playlist URL must start with http:// or https://',
+    fr: 'l’URL de la playlist doit commencer par http:// ou https://',
+    pt: 'o URL da playlist deve começar por http:// ou https://',
+    es: 'la URL de la lista debe empezar por http:// o https://',
+    it: 'l’URL della playlist deve iniziare con http:// o https://',
+    de: 'die Playlist-URL muss mit http:// oder https:// beginnen',
+    pl: 'adres playlisty musi zaczynać się od http:// lub https://',
+    cs: 'URL playlistu musí začínat na http:// nebo https://',
+    tr: 'liste adresi http:// veya https:// ile başlamalıdır',
+    he: 'כתובת הפלייליסט חייבת להתחיל ב-http:// או https://',
+    ar: 'يجب أن يبدأ رابط القائمة بـ http:// أو https://',
+    ja: 'プレイリスト URL は http:// または https:// で始まる必要があります',
+    zh: '播放列表地址必须以 http:// 或 https:// 开头',
+    th: 'ลิงก์เพลย์ลิสต์ต้องขึ้นต้นด้วย http:// หรือ https://',
+  },
+  'для Xtream нужны адрес сервера, логин и пароль': {
+    en: 'Xtream requires server URL, username and password',
+    fr: 'Xtream nécessite l’adresse du serveur, l’identifiant et le mot de passe',
+    pt: 'Xtream requer endereço do servidor, utilizador e palavra-passe',
+    es: 'Xtream requiere dirección del servidor, usuario y contraseña',
+    it: 'Xtream richiede indirizzo server, nome utente e password',
+    de: 'Xtream erfordert Serveradresse, Benutzername und Passwort',
+    pl: 'Xtream wymaga adresu serwera, loginu i hasła',
+    cs: 'Xtream vyžaduje adresu serveru, jméno a heslo',
+    tr: 'Xtream için sunucu adresi, kullanıcı adı ve şifre gereklidir',
+    he: 'Xtream דורש כתובת שרת, שם משתמש וסיסמה',
+    ar: 'يتطلب Xtream عنوان الخادم واسم المستخدم وكلمة المرور',
+    ja: 'Xtream にはサーバー URL、ユーザー名、パスワードが必要です',
+    zh: 'Xtream 需要服务器地址、用户名和密码',
+    th: 'Xtream ต้องระบุที่อยู่เซิร์ฟเวอร์ ชื่อผู้ใช้ และรหัสผ่าน',
+  },
+  'нужен адрес портала, например http://portal.example/stalker_portal/c/': {
+    en: 'portal URL is required, e.g. http://portal.example/stalker_portal/c/',
+    fr: 'l’adresse du portail est requise, ex. http://portal.example/stalker_portal/c/',
+    pt: 'é necessário o URL do portal, ex. http://portal.example/stalker_portal/c/',
+    es: 'se requiere la URL del portal, p. ej. http://portal.example/stalker_portal/c/',
+    it: 'è richiesto l’URL del portale, es. http://portal.example/stalker_portal/c/',
+    de: 'Portal-URL erforderlich, z. B. http://portal.example/stalker_portal/c/',
+    pl: 'wymagany jest adres portalu, np. http://portal.example/stalker_portal/c/',
+    cs: 'je vyžadována URL portálu, např. http://portal.example/stalker_portal/c/',
+    tr: 'portal adresi gerekli, örn. http://portal.example/stalker_portal/c/',
+    he: 'נדרשת כתובת פורטל, למשל http://portal.example/stalker_portal/c/',
+    ar: 'مطلوب عنوان البوابة، مثل http://portal.example/stalker_portal/c/',
+    ja: 'ポータル URL が必要です（例: http://portal.example/stalker_portal/c/）',
+    zh: '需要门户地址，例如 http://portal.example/stalker_portal/c/',
+    th: 'ต้องระบุ URL ของพอร์ทัล เช่น http://portal.example/stalker_portal/c/',
+  },
+  'файл плейлиста не найден на ресивере — загрузите его заново': {
+    en: 'playlist file not found on receiver — please upload it again',
+    fr: 'fichier de playlist introuvable sur le récepteur — veuillez le renvoyer',
+    pt: 'ficheiro da playlist não encontrado no recetor — envie novamente',
+    es: 'archivo de lista no encontrado en el receptor — súbelo de nuevo',
+    it: 'file playlist non trovato sul ricevitore — caricalo di nuovo',
+    de: 'Playlist-Datei auf dem Receiver nicht gefunden — bitte erneut hochladen',
+    pl: 'nie znaleziono pliku playlisty na dekoderze — prześlij go ponownie',
+    cs: 'soubor playlistu nebyl v přijímači nalezen — nahrajte jej znovu',
+    tr: 'alıcıda liste dosyası bulunamadı — lütfen tekrar yükleyin',
+    he: 'קובץ הפלייליסט לא נמצא בממיר — העלה אותו מחדש',
+    ar: 'ملف القائمة غير موجود على الجهاز — يرجى رفعه مرة أخرى',
+    ja: '受信機にプレイリストファイルが見つかりません — 再度アップロードしてください',
+    zh: '接收机上未找到播放列表文件 — 请重新上传',
+    th: 'ไม่พบไฟล์เพลย์ลิสต์บนเครื่องรับ — กรุณาอัปโหลดใหม่',
+  },
+  'придумайте название списка': {
+    en: 'please enter a list name', fr: 'veuillez saisir un nom de liste', pt: 'indique um nome para a lista',
+    es: 'introduce un nombre para la lista', it: 'inserisci un nome per la lista', de: 'bitte Listennamen eingeben',
+    pl: 'podaj nazwę listy', cs: 'zadejte název seznamu', tr: 'lütfen bir liste adı girin',
+    he: 'נא להזין שם לרשימה', ar: 'يرجى إدخال اسم القائمة', ja: 'リスト名を入力してください',
+    zh: '请输入列表名称', th: 'กรุณาตั้งชื่อรายการ',
+  },
+  'название не может быть пустым': {
+    en: 'name cannot be empty', fr: 'le nom ne peut pas être vide', pt: 'o nome não pode estar vazio',
+    es: 'el nombre no puede estar vacío', it: 'il nome non può essere vuoto', de: 'Name darf nicht leer sein',
+    pl: 'nazwa nie może być pusta', cs: 'název nemůže být prázdný', tr: 'ad boş olamaz',
+    he: 'השם לא יכול להיות ריק', ar: 'لا يمكن أن يكون الاسم فارغاً', ja: '名前を空にすることはできません',
+    zh: '名称不能为空', th: 'ชื่อต้องไม่ว่างเปล่า',
+  },
 };
+
+const RU_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+function formatRuDate(dayStr, monthStr, yearStr, lang) {
+  const m = RU_MONTHS.indexOf(monthStr.toLowerCase());
+  const d = parseInt(dayStr, 10);
+  if (m < 0 || !d) return null;
+  if (yearStr) {
+    return new Date(parseInt(yearStr, 10), m, d).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  return new Date(2026, m, d).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'long' });
+}
 
 export function trServer(text, lang = getLanguage()) {
   if (!text || lang === 'ru') return text;
   const entry = SERVER_MAP[text];
   if (entry && entry[lang]) return entry[lang];
+
+  let m;
+  if ((m = text.match(/^«(.+?)» до (\d{1,2}) ([а-яё]+) (\d{4})$/i))) {
+    const dt = formatRuDate(m[2], m[3], m[4], lang);
+    if (dt) return `${m[1]} · ${t('sub_until', { date: dt }, lang)}`;
+  }
+  if ((m = text.match(/^до (\d{1,2}) ([а-яё]+) (\d{4})$/i))) {
+    const dt = formatRuDate(m[1], m[2], m[3], lang);
+    if (dt) return t('sub_until', { date: dt }, lang);
+  }
+  if ((m = text.match(/^(Ссылка открывается|Файл на ресивере читается), (\d+) каналов$/))) {
+    const ok = m[1] === 'Ссылка открывается'
+      ? { en: 'Link is reachable', fr: 'Lien accessible', pt: 'Ligação acessível', es: 'Enlace accesible', it: 'Link raggiungibile', de: 'Link erreichbar', pl: 'Link działa', cs: 'Odkaz je dostupný', tr: 'Bağlantı erişilebilir', he: 'הקישור זמין', ar: 'الرابط يعمل', ja: 'リンクに接続可能', zh: '链接可访问', th: 'ลิงก์ใช้งานได้' }
+      : { en: 'File is readable on receiver', fr: 'Fichier lisible sur le récepteur', pt: 'Ficheiro legível no recetor', es: 'Archivo legible en el receptor', it: 'File leggibile sul ricevitore', de: 'Datei auf dem Receiver lesbar', pl: 'Plik czytelny na dekoderze', cs: 'Soubor je v přijímači čitelný', tr: 'Dosya alıcıda okunabiliyor', he: 'הקובץ קריא בממיר', ar: 'الملف قابل للقراءة على الجهاز', ja: '受信機上のファイルを読み取り可能', zh: '接收机上的文件可读', th: 'อ่านไฟล์บนเครื่องรับได้' };
+    return `${ok[lang] || ok.en}, ${channelsWord(parseInt(m[2], 10), lang)}`;
+  }
+  if ((m = text.match(/^Подписка «(.+?)»: (.+)$/))) {
+    const sub = { en: 'Subscription', fr: 'Abonnement', pt: 'Subscrição', es: 'Suscripción', it: 'Abbonamento', de: 'Abo', pl: 'Subskrypcja', cs: 'Předplatné', tr: 'Abonelik', he: 'מנוי', ar: 'الاشتراك', ja: '契約', zh: '订阅', th: 'การสมัครสมาชิก' };
+    return `${sub[lang] || sub.en} “${m[1]}”: ${trServer(m[2], lang)}`;
+  }
+  if ((m = text.match(/^Подписка «(.+?)» закончилась (\d{1,2}) ([а-яё]+) (\d{4})$/i))) {
+    const dt = formatRuDate(m[2], m[3], m[4], lang);
+    if (dt) return `“${m[1]}”: ${t('sub_expired', { date: dt }, lang)}`;
+  }
+  if ((m = text.match(/^Подписка «(.+?)» заканчивается через (\d+) дн\. \((\d{1,2}) ([а-яё]+) (\d{4})\)$/i))) {
+    const dt = formatRuDate(m[3], m[4], m[5], lang);
+    const left = t('sub_days_left', { days: daysWord(parseInt(m[2], 10), lang) }, lang);
+    if (dt) return `“${m[1]}”: ${left} (${dt})`;
+  }
+  if ((m = text.match(/^портал не выдал ссылку: (.+)$/))) {
+    const pfx = { en: 'portal did not return a stream URL', fr: 'le portail n’a pas renvoyé de flux', pt: 'o portal não devolveu o stream', es: 'el portal no devolvió el enlace', it: 'il portale non ha restituito il flusso', de: 'Portal hat keine Stream-URL geliefert', pl: 'portal nie zwrócił adresu strumienia', cs: 'portál nevrátil odkaz na stream', tr: 'portal yayın bağlantısı vermedi', he: 'הפורטל לא החזיר כתובת שידור', ar: 'لم يُرجع البوابة رابط البث', ja: 'ポータルがストリーム URL を返しませんでした', zh: '门户未返回播放地址', th: 'พอร์ทัลไม่ส่งลิงก์สตรีม' };
+    return `${pfx[lang] || pfx.en}: ${m[1]}`;
+  }
   return text;
 }
 
